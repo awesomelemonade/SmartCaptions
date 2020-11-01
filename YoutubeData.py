@@ -12,7 +12,7 @@ videoURL = "https://www.youtube.com/watch?v=Ye8mB6VsUHw"
 debugOut = subprocess.DEVNULL
 debugErr = subprocess.DEVNULL
 
-downloadCommand = ["youtube-dl", "-o", outputDirectory + "%(title)s.%(ext)s", "--all-subs",
+downloadCommand = ["youtube-dl", "-f", "mp4", "-o", outputDirectory + "%(title)s.%(ext)s", "--all-subs",
                         "--sub-format", "vtt", "--sub-lang", "en", videoURL]
 
 startTime = time()
