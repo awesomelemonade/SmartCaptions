@@ -52,7 +52,7 @@ print("Frame Rate: {}".format(frameRate))
 
 # initialize the FPS throughput estimator
 fps = None
-scenes = split_video_into_scenes.find_scenes(os.path.join("data", "test", "Sesame Street - Cookie Monster Sings C is for Cookie.mp4"))
+scenes = split_video_into_scenes.find_scenes(args["video"])
 scene_count = 0
 # loop over frames from the video stream
 while True:
@@ -70,6 +70,26 @@ while True:
 	
 	(H, W) = frame.shape[:2]
 
+	key = cv2.waitKey(1) & 0xFF
+
+	if (scene_count < len(scenes) and frameNumber == scenes[scene_count][0].frame_num) or key == ord("s"):
+		# select the bounding box of the object we want to track (make
+		# sure you press ENTER or SPACE after selecting the ROI)
+		initBB = cv2.selectROI("Frame", frame, fromCenter=False,
+			showCrosshair=True)
+
+		# start OpenCV object tracker using the supplied bounding box
+		# coordinates, then start the FPS throughput estimator as well
+		tracker = cv2.TrackerCSRT_create()
+		tracker.init(frame, initBB)
+		fps = FPS().start()
+		scene_count += 1
+
+	# if the `q` key was pressed, break from the loop
+	elif key == ord("q"):
+		break
+	frameNumber += 1
+
 	# check to see if we are currently tracking an object
 	if initBB is not None:
 		# grab the new bounding box coordinates of the object
@@ -80,7 +100,7 @@ while True:
 			(x, y, w, h) = [int(v) for v in box]
 			objects[frameNumber] = (x, y, w, h)
 			cv2.rectangle(frame, (x, y), (x + w, y + h),
-				(0, 255, 0), 2)
+						  (0, 255, 0), 2)
 
 		# update the FPS counter
 		fps.update()
@@ -102,29 +122,6 @@ while True:
 
 	# show the output frame
 	cv2.imshow("Frame", frame)
-	key = cv2.waitKey(1) & 0xFF
-
-	# if the 's' key is selected, we are going to "select" a bounding
-	# box to track
-
-	if scene_count < len(scenes) and frameNumber == scenes[scene_count][0].frame_num:
-		# select the bounding box of the object we want to track (make
-		# sure you press ENTER or SPACE after selecting the ROI)
-		initBB = cv2.selectROI("Frame", frame, fromCenter=False,
-			showCrosshair=True)
-
-		# start OpenCV object tracker using the supplied bounding box
-		# coordinates, then start the FPS throughput estimator as well
-		tracker = cv2.TrackerCSRT_create()
-		tracker.init(frame, initBB)
-		fps = FPS().start()
-		scene_count += 1
-
-	# if the `q` key was pressed, break from the loop
-	elif key == ord("q"):
-		break
-	frameNumber += 1
-
 vs.release()
 print(frameNumber)
 print(frameRate)
