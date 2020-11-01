@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 FONT = font = cv2.FONT_HERSHEY_SIMPLEX
-FONT_SCALE = 1
-FONT_THICKNESS = 2
+FONT_SCALE = 0.5
+FONT_THICKNESS = 1
 FOREGROUND_COLOR = (255, 255, 255)
 BACKGROUND_COLOR = (0, 0, 0)
 DEBUG_COLOR = (0, 255, 0) # GREEN

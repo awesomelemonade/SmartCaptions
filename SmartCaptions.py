@@ -12,21 +12,21 @@ import heapq
 Caption = namedtuple('Caption', ['character', 'message', 'startTime', 'endTime', 'comments'])
 PrioritizedCaption = namedtuple('PrioritizedCaption', ['time', 'counter', 'caption'])
 
-test = Caption('Bob', 'testing123', 123, 321, None)
+directory = "./data/test/"
 
-framesDir = "./data/friends/frames/"
-framePaths = glob.glob(framesDir + "*.jpeg")
+framesDir = directory + "frames/"
+framePaths = glob.glob(framesDir + "*.jpg")
 print("Reading {} files".format(len(framePaths)), flush=True)
 
-framePaths.sort()
+framePaths.sort(key=lambda s: int(s.split("/")[-1][len("frame"):-len(".jpg")]))
 
-captionsPath = "./data/friends/captions.pkl"
-objectsPath = './data/friends/objects.pkl"
+captionsPath = directory + "captions.pkl"
+objectsPath = directory + "objects.pkl"
 
 with open(captionsPath, 'rb') as captionsFile:
     allCaptions = pickle.load(captionsFile) # list of (character, message, startTime, endTime[, comments])
 with open(objectsPath, 'rb') as objectsFile:
-    allObjects = pickle.load(objectsFile) # list of {"Character": "N x 2 numpy array"} dictionaries
+    objects = pickle.load(objectsFile) # Currently: {index: BoundingBox} # list of {"Character": "N x 2 numpy array"} dictionaries
 
 # Priority Queues to store captions
 currentCaptions = [] # heap sorted by endTime
@@ -37,6 +37,18 @@ for i, caption in enumerate(allCaptions):
 
 heapq.heapify(futureCaptions)
 
+import numpy as np
+import imageio
+
+# ~~~~requires imageio-ffmpeg~~~~
+# given a list of frames (numpy arrays), specifically an array of size ((wxhx3)xn) where n is the number of frames,
+# convert the sequence of frames into a video
+# fps here is 5 to match the sample rate of the initial video -> series of frames
+def frames2video(frames):
+    imageio.mimwrite('videoOutput.mp4', frames, fps=5)
+
+frame_list = []
+
 for i, path in enumerate(framePaths):
     # update priority queues
     while futureCaptions and futureCaptions[0].time <= i:
@@ -46,17 +58,26 @@ for i, path in enumerate(framePaths):
         heapq.heappop(currentCaptions)
     # read frame
     frame = imageio.imread(path)
+    frame_list.append(frame)
     # get regions map by ID
-    regionsMap = allObjects[i]
+    #regionsMap = allObjects[i]
+    regionsMap = {}
     # apply captions
     for _, _, caption in currentCaptions:
         if caption.character in regionsMap:
             # apply w/ objection tracking
             region = regionsMap[caption.character]
         else:
-            # apply w/o object tracking
+            captionWidth, captionHeight = TextRenderer.getCaptionSize(caption.message)
+            if i in objects:
+                x, y, width, height = objects[i]
+                TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message)
+            else:
+                # apply w/o object tracking
+                TextRenderer.renderCaption(frame, (100, 100, captionWidth, captionHeight), caption.message)
+    cv2.imshow("Frame", frame)
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord("q"):
+        break
 
-TextRenderer.renderCaption(frame, (100, 100, 100, 100), "sample text")
-
-plt.imshow(frame)
-plt.show()
+frames2video(frame_list)
