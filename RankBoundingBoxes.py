@@ -37,6 +37,7 @@ def findIntersection(r, c, width, height, obj, frame_height, frame_width):
 # frame: M x N x 3 source image
 # box_size: [width, height]
 # obj: list which contains points on boundary of object of interest (basically, don't place captions here) - can extend this later
+# if there are no objects being tracked within a frame, pass obj = None 
 
 # return top k top-left corners that correspond to top k found candidate bounding box locations for captions
 
@@ -44,9 +45,6 @@ def rankBoxes(frame, boxSize, obj, k):
     grayframe = rgb2gray(frame)
     width = boxSize[0]
     height = boxSize[1]
-    # uncomment to consider entire frame
-    # rows = frame.shape[0]
-    # cols = frame.shape[1]
 
 
     frame_height = frame.shape[0]
@@ -92,10 +90,24 @@ def rankBoxes(frame, boxSize, obj, k):
     # actualc = max(startc - width, 0)
     # upperR = min(startr + rows + height, frame.shape[0])
     # upperC = min(startc + cols + width, frame.shape[1])
+
     actualr = 0
     actualc = max(startc - width, 0)
     upperR = startr
+    if (upperR < height):
+        #width-neighborhood, top 1/3 of height of object
+        upperR = rows/3
     upperC = min(startc + cols + width, frame.shape[1])
+
+    if obj is None:
+        # no objects being tracked, just use entire frame
+        rows = frame.shape[0]
+        cols = frame.shape[1]
+        actualr = 0
+        upperR = rows
+        actualc = 0
+        upperC = cols
+
     for r in range(actualr, upperR):
         for c in range(actualc, upperC):
             innersum = 0
@@ -130,7 +142,7 @@ def rankBoxes(frame, boxSize, obj, k):
 #     # mat = scipy.io.loadmat("twoFrameData", appendmat=True)
 
 #     # im1 = np.array(mat["im2"], dtype = np.uint8)
-#     im1 = imageio.imread("cookiemonster.jpg")
+#     im1 = imageio.imread("cookiemonster2.jpg")
 #     fig, ax = plt.subplots(1)
 
 #     ax.imshow(im1)
@@ -140,7 +152,7 @@ def rankBoxes(frame, boxSize, obj, k):
 #     # region_points = np.array(list(zip(roi.all_x_points, roi.all_y_points)))
 #     # np.save("regiontesting.npy", region_points)
 #     k = 5
-#     height = 30
+#     height = 50
 #     width = 500
 #     region_points = np.load("regiontesting.npy")
 #     output = rankBoxes(im1, np.array([width, height]), region_points, k)
