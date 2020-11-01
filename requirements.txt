@@ -40,3 +40,5 @@ Unidecode==1.1.1
 urllib3==1.25.11
 wasabi==0.8.0
 wcwidth==0.2.5
+scenedetect==0.5.4.1
+youtube-dl==2020.9.20
