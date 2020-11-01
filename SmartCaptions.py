@@ -58,7 +58,6 @@ for i, path in enumerate(framePaths):
         heapq.heappop(currentCaptions)
     # read frame
     frame = imageio.imread(path)
-    frame_list.append(frame)
     # get regions map by ID
     #regionsMap = allObjects[i]
     regionsMap = {}
@@ -75,6 +74,7 @@ for i, path in enumerate(framePaths):
             else:
                 # apply w/o object tracking
                 TextRenderer.renderCaption(frame, (100, 100, captionWidth, captionHeight), caption.message)
+    frame_list.append(frame)
     cv2.imshow("Frame", frame)
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
