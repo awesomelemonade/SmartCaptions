@@ -37,6 +37,18 @@ for i, caption in enumerate(allCaptions):
 
 heapq.heapify(futureCaptions)
 
+import numpy as np
+import imageio
+
+# ~~~~requires imageio-ffmpeg~~~~
+# given a list of frames (numpy arrays), specifically an array of size ((wxhx3)xn) where n is the number of frames,
+# convert the sequence of frames into a video
+# fps here is 5 to match the sample rate of the initial video -> series of frames
+def frames2video(frames):
+    imageio.mimwrite('videoOutput.mp4', frames, fps=5)
+
+frame_list = []
+
 for i, path in enumerate(framePaths):
     # update priority queues
     while futureCaptions and futureCaptions[0].time <= i:
@@ -46,6 +58,7 @@ for i, path in enumerate(framePaths):
         heapq.heappop(currentCaptions)
     # read frame
     frame = imageio.imread(path)
+    frame_list.append(frame)
     # get regions map by ID
     #regionsMap = allObjects[i]
     regionsMap = {}
@@ -67,7 +80,4 @@ for i, path in enumerate(framePaths):
     if key == ord("q"):
         break
 
-
-
-
-
+frames2video(frame_list)
