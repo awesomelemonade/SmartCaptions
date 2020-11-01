@@ -3,4 +3,6 @@ data/*
 
 venv
 
-frames
+*frames
+captions
+videos
