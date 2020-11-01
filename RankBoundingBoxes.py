@@ -39,9 +39,15 @@ def rankBoxes(frame, boxSize, obj, k):
     grayframe = rgb2gray(frame)
     width = boxSize[0]
     height = boxSize[1]
-    rows = frame.shape[0]
-    cols = frame.shape[1]
+    # uncomment to consider entire frame
+    # rows = frame.shape[0]
+    # cols = frame.shape[1]
 
+    # uncomment to consider a particular region
+    rows = min(frame.shape[0], (np.max(np.array([p[0] for p in obj])) + height))
+    cols = min(frame.shape[1], (np.max(np.array([p[1] for p in obj])) + width))
+    startr = max(0, (np.min(np.array([p[0] for p in obj])) - height))
+    startc = max(0, (np.min(np.array([p[1] for p in obj])) - width))
     # differentiation filter
     filter_x = [[1, 0, -1],
                 [1, 0, -1],
@@ -60,8 +66,8 @@ def rankBoxes(frame, boxSize, obj, k):
     # list of [weighted linear combination of respective innersum and intersection with objects of interest, top left coords of candidate bounding box]
     list_of_positions = []
 
-    for r in range(rows):
-        for c in range(cols):
+    for r in range(startr, rows):
+        for c in range(startc, cols):
             innersum = 0
             if (r + height - 1 >= rows or c + width - 1 >= cols):
                 # 2d subarray out of bounds, just continue
@@ -103,9 +109,9 @@ def rankBoxes(frame, boxSize, obj, k):
 #     # np.save("pointstesting.npy", indices)
 #     # region_points = np.array(list(zip(roi.all_x_points, roi.all_y_points)))
 #     # np.save("regiontesting.npy", region_points)
-    
+#     k = 5
 #     region_points = np.load("regiontesting.npy")
-#     output = rankBoxes(im1, np.array([300, 50]), region_points, 5)
+#     output = rankBoxes(im1, np.array([300, 50]), region_points, k)
 #     for idx in range(k):
 #         r = output[idx][1]
 #         rectangle = Rectangle((r[0],r[1]),300,50,linewidth=1,edgecolor='r',facecolor='none')
