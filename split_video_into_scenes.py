@@ -3,6 +3,8 @@
 from scenedetect import VideoManager
 from scenedetect import SceneManager
 
+import os
+
 # For content-aware scene detection:
 from scenedetect.detectors import ContentDetector
 
@@ -26,5 +28,6 @@ def find_scenes(video_path, threshold=30.0):
     # Each returned scene is a tuple of the (start, end) timecode.
     return scene_manager.get_scene_list(base_timecode)
 
-scenes = find_scenes(r"data\test\Sesame Street - Cookie Monster Sings C is for Cookie.mp4")
+# r"data\test\Sesame Street - Cookie Monster Sings C is for Cookie.mp4"
+scenes = find_scenes(os.path.join("data", "test", "Sesame Street - Cookie Monster Sings C is for Cookie.mp4"))
 print(scenes)
