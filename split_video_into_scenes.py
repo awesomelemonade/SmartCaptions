@@ -29,5 +29,5 @@ def find_scenes(video_path, threshold=30.0):
     return scene_manager.get_scene_list(base_timecode)
 
 # r"data\test\Sesame Street - Cookie Monster Sings C is for Cookie.mp4"
-scenes = find_scenes(os.path.join("data", "test", "Sesame Street - Cookie Monster Sings C is for Cookie.mp4"))
-print(scenes)
+# scenes = find_scenes(os.path.join("data", "test", "battlefor.mp4"))
+# print(scenes)
