@@ -8,6 +8,7 @@ import TextRenderer
 import pickle
 from collections import namedtuple
 import heapq
+import imageio
 
 Caption = namedtuple('Caption', ['character', 'message', 'startTime', 'endTime', 'comments'])
 PrioritizedCaption = namedtuple('PrioritizedCaption', ['time', 'counter', 'caption'])
@@ -37,15 +38,6 @@ for i, caption in enumerate(allCaptions):
 
 heapq.heapify(futureCaptions)
 
-import numpy as np
-import imageio
-
-# ~~~~requires imageio-ffmpeg~~~~
-# given a list of frames (numpy arrays), specifically an array of size ((wxhx3)xn) where n is the number of frames,
-# convert the sequence of frames into a video
-# fps here is 5 to match the sample rate of the initial video -> series of frames
-def frames2video(frames):
-    imageio.mimwrite('videoOutput.mp4', frames, fps=5)
 
 frame_list = []
 
@@ -75,9 +67,17 @@ for i, path in enumerate(framePaths):
                 # apply w/o object tracking
                 TextRenderer.renderCaption(frame, (100, 100, captionWidth, captionHeight), caption.message)
     frame_list.append(frame)
-    cv2.imshow("Frame", frame)
+    cv2.imshow("Frame", frame[...,::-1])
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
         break
 
+# ~~~~requires imageio-ffmpeg~~~~
+# given a list of frames (numpy arrays), specifically an array of size ((wxhx3)xn) where n is the number of frames,
+# convert the sequence of frames into a video
+# fps here is 5 to match the sample rate of the initial video -> series of frames
+def frames2video(frames):
+    imageio.mimwrite('out/videoOutput.mp4', frames, fps=30)
+
 frames2video(frame_list)
+

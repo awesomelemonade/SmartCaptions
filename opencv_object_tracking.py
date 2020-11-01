@@ -131,7 +131,7 @@ cv2.destroyAllWindows()
 
 resampled = {}
 totalTime = frameRate * frameNumber
-targetFps = 5
+targetFps = 30
 
 for i in range(round(totalTime * targetFps)):
     frameIndex = round(i / targetFps * frameRate)

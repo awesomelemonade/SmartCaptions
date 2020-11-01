@@ -1,10 +1,7 @@
 __pycache__/*
 data/*
-
+out/*
 venv
-
 frames
-
-videoOutput.mp4
-
 .vscode
+

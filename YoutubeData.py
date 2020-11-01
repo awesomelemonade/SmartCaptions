@@ -27,7 +27,7 @@ print("Download took {}ms".format(math.floor((time() - startTime) * 1000)))
 framesDirectory = outputDirectory + "frames/"
 Path(framesDirectory).mkdir(parents=True, exist_ok=True)
 
-fps = 5
+fps = 30
 convertCommand = ["ffmpeg", "-i", videoPath, "-vf", "fps=fps=" + str(fps),
                     framesDirectory + "frame%d.jpg"]
                     
