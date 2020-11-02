@@ -6,13 +6,13 @@ import glob
 from collections import namedtuple
 import pickle
 
-outputDirectory = "data/test/"
-videoURL = "https://www.youtube.com/watch?v=Ye8mB6VsUHw"
+outputDirectory = "data/bfdi1a/"
+videoURL = "https://www.youtube.com/watch?v=YQa2-DY7Y_Q"
 
 debugOut = subprocess.DEVNULL
 debugErr = subprocess.DEVNULL
 
-downloadCommand = ["youtube-dl", "-f", "mp4", "-o", outputDirectory + "%(title)s.%(ext)s", "--all-subs",
+downloadCommand = ["youtube-dl", "-f", "mp4", "-o", outputDirectory + "%(title)s.%(ext)s", "--write-sub",
                         "--sub-format", "vtt", "--sub-lang", "en", videoURL]
 
 startTime = time()
@@ -64,6 +64,7 @@ startTime = time()
 
 captionsPicklePath = outputDirectory + "captions.pkl"
 with open(captionsPicklePath, 'wb') as f:
+    pickle.dump(fps, f)
     pickle.dump(captions, f)
 
 print("Pickled {} captions in {} ms".format(len(captions), math.floor((time() - startTime) * 1000)))

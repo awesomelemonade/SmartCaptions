@@ -13,7 +13,7 @@ import imageio
 Caption = namedtuple('Caption', ['character', 'message', 'startTime', 'endTime', 'comments'])
 PrioritizedCaption = namedtuple('PrioritizedCaption', ['time', 'counter', 'caption'])
 
-directory = "./data/test/"
+directory = "./data/bfdi1a/"
 
 framesDir = directory + "frames/"
 framePaths = glob.glob(framesDir + "*.jpg")
@@ -25,6 +25,7 @@ captionsPath = directory + "captions.pkl"
 objectsPath = directory + "objects.pkl"
 
 with open(captionsPath, 'rb') as captionsFile:
+    targetFps = pickle.load(captionsFile)
     allCaptions = pickle.load(captionsFile) # list of (character, message, startTime, endTime[, comments])
 with open(objectsPath, 'rb') as objectsFile:
     objects = pickle.load(objectsFile) # Currently: {index: BoundingBox} # list of {"Character": "N x 2 numpy array"} dictionaries
@@ -75,9 +76,8 @@ for i, path in enumerate(framePaths):
 # ~~~~requires imageio-ffmpeg~~~~
 # given a list of frames (numpy arrays), specifically an array of size ((wxhx3)xn) where n is the number of frames,
 # convert the sequence of frames into a video
-# fps here is 5 to match the sample rate of the initial video -> series of frames
 def frames2video(frames):
-    imageio.mimwrite('out/videoOutput.mp4', frames, fps=30)
+    imageio.mimwrite('out/videoOutput.mp4', frames, fps=targetFps)
 
 frames2video(frame_list)
 

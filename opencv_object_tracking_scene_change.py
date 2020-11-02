@@ -19,7 +19,7 @@ import os
 ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video", type=str,
 	help="path to input video file")
-ap.add_argument("-t", "--tracker", type=str, default="kcf",
+ap.add_argument("-t", "--tracker", type=str, default="csrt",
 	help="OpenCV object tracker type")
 args = vars(ap.parse_args())
 
@@ -48,7 +48,6 @@ vs = cv2.VideoCapture(args["video"])
 objects = {}
 frameNumber = 0
 frameRate = vs.get(cv2.CAP_PROP_FPS)
-print("Frame Rate: {}".format(frameRate))
 
 # initialize the FPS throughput estimator
 fps = None
@@ -123,8 +122,6 @@ while True:
 	# show the output frame
 	cv2.imshow("Frame", frame)
 vs.release()
-print(frameNumber)
-print(frameRate)
 # close all windows
 cv2.destroyAllWindows()
 
@@ -133,14 +130,18 @@ cv2.destroyAllWindows()
 
 resampled = {}
 totalTime = frameRate * frameNumber
-targetFps = 30
+
+outputDirectory = "data/bfdi1a/"
+
+captionsPicklePath = outputDirectory + "captions.pkl"
+with open(captionsPicklePath, 'rb') as f:
+    targetFps = pickle.load(f)
 
 for i in range(round(totalTime * targetFps)):
     frameIndex = round(i / targetFps * frameRate)
     if frameIndex in objects:
         resampled[i] = objects[frameIndex]
 
-outputDirectory = "data/test/"
 objectsPicklePath = outputDirectory + "objects.pkl"
 with open(objectsPicklePath, 'wb') as f:
     pickle.dump(resampled, f)
