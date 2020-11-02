@@ -1,103 +1,436 @@
 <!DOCTYPE html>
-<html lang="en"><head>  
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta charset="utf-8">
-  <title>Computer Vision Class Project
-  | CS @ GT | Fall 2020: CS 4476/6476</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="">
-  <meta name="author" content="">
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta charset="utf-8" />
+    <title>
+      Computer Vision Class Project | CS @ GT | Fall 2020: CS 4476/6476
+    </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
 
-<!-- Le styles -->  
-  <link href="css/bootstrap.css" rel="stylesheet">
-<style>
-body {
-padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
-}
-.vis {
-color: #3366CC;
-}
-.data {
-color: #FF9900;
-}
-</style>
-  
-<link href="css/bootstrap-responsive.min.css" rel="stylesheet">
+    <!-- Le styles -->
+    <link href="css/bootstrap.css" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.3.2/styles/default.min.css"
+    />
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.3.2/highlight.min.js"></script>
+    <style>
+      body {
+        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+      }
+      .vis {
+        color: #3366cc;
+      }
+      .data {
+        color: #ff9900;
+      }
+    </style>
 
-<!-- HTML5 shim, for IE6-8 support of HTML5 elements --><!--[if lt IE 9]>
-<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-<![endif]-->
-</head>
+    <link href="css/bootstrap-responsive.min.css" rel="stylesheet" />
 
-<body>
-<div class="container">
-<div class="page-header">
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
 
-<!-- Title and Name --> 
-<h1>SmartCaptions</h1> 
-<span style="font-size: 20px; line-height: 1.5em;"><strong>Ethan Gordon, Jason Lee, Alex Liu, Aaditya Raghavan, Andrew Zhao</strong></span><br>
-<span style="font-size: 18px; line-height: 1.5em;">Fall 2020 CS 4476 Computer Vision: Class Project</span><br>
-<span style="font-size: 18px; line-height: 1.5em;">Georgia Tech</span>
-<hr>
+  <body>
+    <div class="container">
+      <div class="page-header">
+        <!-- Title and Name -->
+        <h1>
+          SmartCaptions: Intelligently Placed Captions to Enhance Video Viewing
+          Experience
+        </h1>
+        <span style="font-size: 20px; line-height: 1.5em"
+          ><strong
+            >Ethan Gordon, Jason Lee, Alex Liu, Aaditya Raghavan, Andrew
+            Zhao</strong
+          ></span
+        ><br />
+        <span style="font-size: 18px; line-height: 1.5em"
+          >Fall 2020 CS 4476 Computer Vision: Class Project</span
+        ><br />
+        <span style="font-size: 18px; line-height: 1.5em">Georgia Tech</span>
+        <hr />
 
-<!-- Goal -->
-<h3>Abstract</h3>
+        <!-- Goal -->
+        <h2>Abstract</h2>
+        <p>
+          Captioning videos is no easy task. Automatic video captioning
+          technology does not allow for intelligent placement of captions, and
+          manual captioning requires much human effort for a simple task, and if
+          captions are to be placed in such a way so as to not block objects of
+          importance, then the process becomes even more tedious. In light of
+          this problem, we have made SmartCaptions, a tool that intelligently
+          places captions in relation to the entity being tracked, while not
+          obscuring the entity from view. SmartCaptions uses object detection,
+          object tracking, and caption placement. With a single object and zero
+          scene changes, we are able to consistently place captions near a
+          relevant object.
+        </p>
+        <br />
+        <!-- figure -->
+        <!-- <h3>Teaser figure</h3> -->
+        <!-- A figure that conveys the main idea behind the project or the main application being addressed. -->
+        <!-- <br><br> -->
+        <!-- Main Illustrative Figure -->
+        <!-- <div style="text-align: center;"> -->
+        <!-- <img style="height: 200px;" alt="" src="mainfig.png"> -->
+        <!-- </div> -->
 
-One or two sentences on the motivation behind the problem you are solving. One or two sentences describing the approach you took. One or two sentences on the main result you obtained.
-<br><br>
-<!-- figure -->
-<h3>Teaser figure</h3>
-A figure that conveys the main idea behind the project or the main application being addressed.
-<br><br>
-<!-- Main Illustrative Figure --> 
-<div style="text-align: center;">
-<img style="height: 200px;" alt="" src="mainfig.png">
-</div>
+        <br /><br />
+        <!-- Introduction -->
+        <h2>Introduction</h2>
+        <p>
+          Automatic captions are undoubtedly a helpful tool to keep up with
+          dialogue in a video, but the generated captions can sometimes detract
+          attention from the video’s main content.
+        </p>
+        <br />
+        <p>
+          Currently, popular video playing and streaming websites such as
+          YouTube, Vevo, and Vimeo place all captions near the bottom of the
+          video, with some platforms giving the option to customize the location
+          where all captions are shown. The problem with this is the captions
+          can distract the audience from the main scene of the video just to
+          focus on the subtitles, and especially for videos with multiple
+          languages, this can be quite tough.
+        </p>
+        <br />
 
-<br><br>
-<!-- Introduction -->
-<h3>Introduction</h3>
-Motivation behind the problem you are solving, what applications it has, any brief background on the particular domain you are working in (if not regular RBG photographs), etc. If you are using a new way to solve an existing problem, briefly mention and describe the existing approaches and tell us how your approach is new.
+        <p>
+          The solution to this is to place each line of the captions near the
+          character speaking that line such that it does not take away too much
+          focus from the foreground. One YouTuber by the username of
+          SovietWomble, who produces content often with multiple characters,
+          places and styles text to provide an immersive captioning experience
+          for viewers. The results have been quite effective: SovietWomble
+          currently has 3.87 million subscribers, part of which can be
+          attributed to the captions.
+        </p>
+        <br />
 
-<br><br>
-<!-- Approach -->
-<h3>Approach</h3>
-Describe very clearly and systematically your approach to solve the problem. Tell us exactly what existing implementations you used to build your system. Tell us what obstacles you faced and how you addressed them. Justify any design choices or judgment calls you made in your approach.
+        <p>
+          The problem with this method is the cost of labor. While effective,
+          this manual captioning takes lots of time, as each frame needs to be
+          edited with the correct caption and placed and stylized appropriately.
+          Our idea was to automate this intelligent positioning of the captions.
+          In other words, we want to place captions in areas near the object of
+          interest while ensuring that it would not obscure any major activity.
+        </p>
+        <br />
 
-<br><br>
-<!-- Results -->
-<h3>Experiments and results</h3>
-Provide details about the experimental set up (number of images/videos, number of datasets you experimented with, train/test split if you used machine learning algorithms, etc.). Describe the evaluation metrics you used to evaluate how well your approach is working. Include clear figures and tables, as well as illustrative qualitative examples if appropriate. Be sure to include obvious baselines to see if your approach is doing better than a naive approach (e.g. for classification accuracy, how well would a classifier do that made random decisions?). Also discuss any parameters of your algorithms, and tell us how you set the values of those parameters. You can also show us how the performance varies as you change those parameter values. Be sure to discuss any trends you see in your results, and explain why these trends make sense. Are the results as expected? Why?
+        <!-- Procedures -->
+        <h2>Procedures</h2>
+        <p>
+          Our solution to this problem used a variety of classical computer
+          vision techniques in addition to image processing libraries and web
+          scraping tools.
+        </p>
+        <br />
 
-<br><br>
+        <p>
+          This problem can be broken down into several steps. After downloading
+          a transcript with timestamps and manually drawing loose bounding boxes
+          for characters (if text is desired to be put tied to an image), we
+          first tracked the regions of interest (ROIs), specified by the
+          bounding boxes, throughout an entire scene. After accomplishing that,
+          we used the ROIs’ positions to find the appropriate position and
+          orientation for the caption for that current frame. Once the caption’s
+          correct place was determined, the video was modified to contain the
+          caption placed correctly.
+        </p>
+        <br />
 
-<!-- Main Results Figure --> 
-<div style="text-align: center;">
-<img style="height: 300px;" alt="" src="results.png">
-</div>
-<br><br>
+        <h4>Data Acquisition</h4>
+        <p>
+          Virtually any videos with captions can be used as a dataset for this
+          project. To make this work, we specified a format for all data to be
+          processed into.
+        </p>
+        <br />
 
-<!-- Results -->
-<h3>Qualitative results</h3>
-Show several visual examples of inputs/outputs of your system (success cases and failures) that help us better understand your approach.
-<br><br>
+        <p>
+          Our primary dataset comes from YouTube. Extracting video frames and
+          captions was done with a python script that did the following:
+        </p>
+        <br />
 
-<!-- Main Results Figure --> 
-<div style="text-align: center;">
-<img style="height: 300px;" alt="" src="qual_results.png">
-</div>
-<br><br>
+        <ul>
+          <li>Download the video in mp4 format using youtube-dl</li>
+          <li>Download the captions in vtt format using youtube-dl</li>
+          <li>Extracted frames from the video using ffmpeg into JPG files</li>
+          <li>Parsed vtt files into a list of Caption tuples</li>
+          <li>Pickled Caption tuples into captions.pkl</li>
+        </ul>
+        <br />
 
+        <p>
+          We plan on using other datasets that may give more specific
+          information (ex: speaker of caption line) to enhance the smart
+          captioning system.
+        </p>
+        <br />
 
+        <h4>Object Tracking</h4>
 
+        <p>
+          For the object tracking we used the Discriminative Correlation Filter
+          with Channel and Spatial Reliability (CSRT) provided by CV2. We used
+          this tracker by selecting a region of interest, usually a face or
+          another important, stable feature. Throughout the video the region of
+          interest is tracked even if it changes scale, rotates, or is partially
+          occluded. By tracking the position of this region, we can compute the
+          location of the caption position.
+        </p>
+        <br />
 
-  <hr>
-  <footer> 
-  <p>© SmartCaptions 2020</p>
-  </footer>
-</div>
-</div>
+        <h4>Object Detection</h4>
+        <p>
+          We experimented with object detection for human faces. To detect faces
+          we used a Haar feature-based Cascade Classifier. This works reasonably
+          well, but occasionally misclassifies other objects as faces or fails
+          to recognize a real face. For this reason, we have not included the
+          face detector in the current version of the project. In the future, we
+          plan to apply filtering to reduce the noise of the output objects.
+          Object detection will be used to automatically select the region of
+          interest to be tracked throughout the video.
+        </p>
+        <br />
 
-<br><br>
+        <h4>Scene Change Detection</h4>
+        <p>
+          Since many videos have scene changes, we utilized pyscenedetect to
+          segment videos into specific scenes. This would aid the editor, as
+          usually scene shifts will require a new object to track (if any). The
+          library uses changes in average frame intensity/brightness, which has
+          issues with brief flashes such as explosions or between scenes of
+          similar intensity/brightness. We will look into other methods for
+          detection that incorporate relevant information about current objects
+          within the scene appearing within the next.
+        </p>
+        <br />
 
-</body></html>
+        <h4>Caption Placement</h4>
+        <p>
+          After finding the main subjects in a frame, we needed to determine
+          what the best position for the frame’s corresponding caption was. The
+          preliminary method of placing captions involves the calculation of
+          gradients of pixels in the x and y directions after having converted
+          an rgb image to grayscale, and computing a final gradient matrix
+          (which will be the matrix used in the actual computation of caption
+          box locations) using a linear combination of g_x (gradients in x
+          direction) and g_y (gradients in y direction) in accordance to the
+          ratio of the width to the height of the bounding box of the caption
+          that needs placement. Using this computed gradient matrix, we find
+          cumulative sums first by each of the rows, and then each of the
+          columns - this allows for efficient computation of 2d-subarray sums in
+          quadratic time. The region within the frame in which the algorithm
+          looks for possible locations of the captions is the space between the
+          top of the bounding box of the object being tracked, and the top of
+          the image frame itself (in situations where the distance between the
+          top of this bounding box and the top of the frame is less than the
+          height of the bounding box needing to be placed, we consider the
+          region in a w-neighborhood of the bounding box of the object being
+          tracked, where w is the width of the caption box to be placed, and the
+          rows span the top ⅓ of the bounding box of the object being tracked).
+        </p>
+        <br />
+
+        <p>
+          The candidate caption boxes (determined by their top-left corner) are
+          sorted in ascending order of parameter T, where T = aU + (1-a)V - for
+          a given candidate caption box’s top-left corner, U = area of
+          intersection between the object polygon (i.e., its bounding box) +
+          average of minimum and maximum distances between the object and
+          caption polygons multiplied by a large quantity (since distances are
+          often very small and minor differences need to be differentiated in
+          our ranking procedure); V = normalized sum of the 2d-subarray of the
+          computed gradient matrix, corresponding to the bounding box location
+          being queried in the original image, and a is some value between 0 and
+          1 weighting the contribution of each of U and V to the scoring
+          parameter T (as of now, this is just 0.5). That is, T, in a sense,
+          captures the “quality” of a candidate bounding box for a caption by
+          determining the degree to which the queried region is close to the
+          object being tracked, while not intersecting the object by too much,
+          while also keeping the edges it traverses as small as possible. Then,
+          we simply return the top k caption boxes in the final sorted list.
+        </p>
+        <br />
+
+        <h4>Video Modification</h4>
+        <p>
+          After retrieving this location, the last step is to overlay the
+          caption on the video. To accomplish this, the OpenCV library’s
+          putText() was used to place text on top of each frame for the
+          calculated position. Imageio’s <code>wimwrite()</code> function was
+          used to combine all frames into a viewable video.
+        </p>
+        <br />
+
+        <!-- Results -->
+        <h2>Experiments and results</h2>
+
+        <p>
+          While we have not finished the project just yet, we were able to
+          produce some good intermediate results.
+        </p>
+        <br />
+
+        <!-- Cookie Monster -->
+        <iframe
+          width="560"
+          height="315"
+          src="https://www.youtube.com/embed/TsXLsWSkrxc"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+        <br /><br />
+
+        <p>
+          As seen here, the captions are placed on top of Cookie Monster’s head
+          while not obscuring much important information.
+        </p>
+        <br />
+
+        <h4>Failure Cases</h4>
+
+        <p>
+          Currently, we have problems with some edge cases. These include
+          occlusion, fast movement, and scene changes. The following examples
+          demonstrate the failure case for each problem:
+        </p>
+        <br />
+
+        <!-- Monty Python -->
+        <iframe
+          width="560"
+          height="315"
+          src="https://www.youtube.com/embed/x3DGHhMWvpA"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+        <br /><br />
+
+        <p>
+          Here we see the problem that occurs with occlusion, where the selected
+          region of interest to track is hidden behind another object in the
+          frame. In this particular video (at 1 minute and 5 seconds), the
+          region of interest (the head of the character) was not captured by the
+          frame, but rather the character’s belly button. This problem arises
+          because part of the ROI is being obscured by another object, meaning a
+          simple matching algorithm to find the ROI will not be satisfactory.
+          One solution to this problem is to use a neural network-based
+          approach, similar to that used by the Depth Aware Video Frame
+          Interpolation tool. This may not be the best approach, so we will need
+          to conduct further research to that extent.
+        </p>
+        <br />
+
+        <!-- Fast movement -->
+        <iframe
+          width="560"
+          height="315"
+          src="https://www.youtube.com/embed/h33eI7avyLk"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+        <br /><br />
+
+        <p>
+          SmartCaptions currently looks at the velocity of the ROI if the ROI
+          appears to be moving between frames and compensates for that. However,
+          it does not account high acceleration or deceleration, causing
+          problems with tracking the velocity of the ROI. We would like to look
+          into detecting changes in velocity for the ROI to fix this particular
+          case.
+        </p>
+        <br />
+
+        <h2>Conclusion</h2>
+        <p>
+          SmartCaptions helps improve the viewing experience by placing video
+          subtitles in relevant locations rather than the bottom of the screen.
+          This helps prevent the viewer from constantly switching their
+          attention between different locations.
+        </p>
+        <br />
+
+        <h2>Future Works</h2>
+        <p>
+          One major hurdle we want to tackle is removing as much manual editing
+          as possible. Instead of manually selecting a region of interest, we
+          can incorporate some sort of automatic object recognition to supply
+          the bounding box instead.
+        </p>
+        <br />
+
+        <p>
+          One approach is applicable to human dialogue, which would be facial
+          recognition. The concept is to detect face instances, and then run an
+          algorithm like eigenfaces on top of it. We would create a corpus of
+          faces relevant to the show/blog/dialogue (or this could be done with
+          collected manual ROIs). Of course, this is not guaranteed to detect a
+          person every time, but it could also help with double checking the
+          object tracking as well (if a different face appears within the
+          region, or the face appears somewhere besides the region). This would
+          lessen the impacts of occlusion, which was the main failure case we
+          found in our experiments.
+        </p>
+        <br />
+
+        <p>
+          We plan to implement object recognition to automatically select
+          already selected objects in the video rather than using the manual
+          selection. Several approaches to this problem include the Haar /
+          Viola-Jones Cascade Classifier, support vector machines (SVM), and
+          deep learning-based approaches, and we want to experiment with some of
+          these.
+        </p>
+        <br />
+
+        <h2>References</h2>
+        <ul>
+          <li>
+            Idea of using inclusion-exclusion (for caption placement) to compute
+            subarray totals adapted from:
+            <a href="https://stackoverflow.com/a/39940922"
+              >https://stackoverflow.com/a/39940922</a
+            >
+          </li>
+          <li>
+            Alan Lukežič, Tomáš Vojíř, Luka Čehovin, Jiří Matas, Matej Kristan:
+            “Discriminative Correlation Filter with Channel and Spatial
+            Reliability”, 2016; [<a href="http://arxiv.org/abs/1611.08461"></a>
+            arXiv:1611.08461]. DOI: [<a
+              href="https://dx.doi.org/10.1007/s11263-017-1061-3"
+              >https://dx.doi.org/10.1007/s11263-017-1061-3</a
+            >
+            10.1007/s11263-017-1061-3].
+          </li>
+          <li>
+            Depth Aware Video Frame Interpolation:
+            <a href="https://github.com/baowenbo/DAIN"
+              >https://github.com/baowenbo/DAIN</a
+            >
+          </li>
+        </ul>
+        <br />
+
+        <hr />
+        <footer>
+          <p>© SmartCaptions 2020</p>
+        </footer>
+      </div>
+    </div>
+
+    <br /><br />
+  </body>
+</html>
