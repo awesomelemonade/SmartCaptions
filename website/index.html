@@ -11,7 +11,7 @@
     <meta name="author" content="" />
 
     <!-- Le styles -->
-    <link href="css/bootstrap.css" rel="stylesheet" />
+    <link href="bootstrap.css" rel="stylesheet" />
     <link
       rel="stylesheet"
       href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.3.2/styles/default.min.css"
@@ -29,7 +29,7 @@
       }
     </style>
 
-    <link href="css/bootstrap-responsive.min.css" rel="stylesheet" />
+    <link href="bootstrap-responsive.min.css" rel="stylesheet" />
 
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
@@ -74,13 +74,10 @@
         </p>
         <br />
         <!-- figure -->
-        <!-- <h3>Teaser figure</h3> -->
-        <!-- A figure that conveys the main idea behind the project or the main application being addressed. -->
-        <!-- <br><br> -->
-        <!-- Main Illustrative Figure -->
-        <!-- <div style="text-align: center;"> -->
-        <!-- <img style="height: 200px;" alt="" src="mainfig.png"> -->
-        <!-- </div> -->
+        <h2>Teaser figure</h2>
+        <div style="text-align: center">
+          <img style="height: 250px" alt="" src="soviet_womble.png" />
+        </div>
 
         <br /><br />
         <!-- Introduction -->
@@ -317,6 +314,16 @@
           allowfullscreen
         ></iframe>
         <br /><br />
+
+        <p>
+          At 5 seconds, we can see that the program detects the explosion as a
+          scene change due to changes in intensity. This could be improved, but
+          for usability it is an acceptable mistake. However, at 8 seconds, it
+          doesn’t properly detect the shift to the old man. This will create
+          issues. One option is to decrease the threshold for scene shifts,
+          since overdetection is better than underdetection in this use case.
+        </p>
+        <br />
 
         <p>
           Here we see the problem that occurs with occlusion, where the selected
