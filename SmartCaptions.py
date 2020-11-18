@@ -13,7 +13,7 @@ import imageio
 Caption = namedtuple('Caption', ['character', 'message', 'startTime', 'endTime', 'comments'])
 PrioritizedCaption = namedtuple('PrioritizedCaption', ['time', 'counter', 'caption'])
 
-directory = "./data/bfdi1a/"
+directory = "./data/joe_and_lex/"
 
 framesDir = directory + "frames/"
 framePaths = glob.glob(framesDir + "*.jpg")
@@ -62,7 +62,7 @@ for i, path in enumerate(framePaths):
         else:
             captionWidth, captionHeight = TextRenderer.getCaptionSize(caption.message)
             if i in objects:
-                x, y, width, height = objects[i]
+                (x, y, width, height), class_name, confidence = objects[i]
                 TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message)
             else:
                 # apply w/o object tracking

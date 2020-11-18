@@ -39,7 +39,7 @@ if __name__ == '__main__' :
 
 
     # Read video
-    video = cv2.VideoCapture("videos/" + video_name + ".mp4")
+    video = cv2.VideoCapture("videos/Joe Rogan & Lex Fridman - Are Elon Musk's Fears About AI Realistic.mp4")
     frameRate = video.get(cv2.CAP_PROP_FPS)
     # skip first 10 frames
     for i in range(10):
@@ -63,7 +63,7 @@ if __name__ == '__main__' :
 
     # Initialize tracker with first frame and bounding box
     # ok = tracker.init(frame, bbox)
-    objects = []
+    objects = {}
     for frame_idx in count():
         # Read a new frame
         ok, frame = video.read()
@@ -90,28 +90,26 @@ if __name__ == '__main__' :
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
         areas = []
         # Draw bounding box
-        if ok:
-            face_roi = (0, 0, 0, 0) if len(objects)==0 else objects[-1]
-            if len(rects) > 0:
-                # Tracking success
-                # p1 = (int(bbox[0]), int(bbox[1]))
-                # p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-                # cv2.rectangle(frame, p1, p2, (255,0,0), 2, 1)
-                for (x,y,w,h) in rects:
-                    areas.append(w*h)
-                face_roi = rects[np.argmax(areas)]
-                x,y,w,h = face_roi
-                face = frame[y:y+h, x:x+w]
-                face = process_face(face)
-                if save_face == True:
-                    path = "faces/" + video_name + "/" + input("what do we call it?") + ".jpg"
-                    print("writing face to " + path)
-                    cv2.imwrite(path, face)
-                face_label, confidence = face_recognizer.predict(face)
-                face_class = face_names[face_label]
-                print(f"face classified as {face_class} with confidence: {confidence}")
-                cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
-            objects.append(face_roi)
+        if ok and len(rects) > 0:
+            # Tracking success
+            # p1 = (int(bbox[0]), int(bbox[1]))
+            # p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
+            # cv2.rectangle(frame, p1, p2, (255,0,0), 2, 1)
+            for (x,y,w,h) in rects:
+                areas.append(w*h)
+            face_roi = rects[np.argmax(areas)]
+            x,y,w,h = face_roi
+            face = frame[y:y+h, x:x+w]
+            face = process_face(face)
+            if save_face == True:
+                path = "faces/" + video_name + "/" + input("what do we call it?") + ".jpg"
+                print("writing face to " + path)
+                cv2.imwrite(path, face)
+            face_label, confidence = face_recognizer.predict(face)
+            face_class = face_names[face_label]
+            print(f"face classified as {face_class} with confidence: {confidence}")
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+            objects[frame_idx] = (face_roi, face_class, confidence)
         else :
             # Tracking failure
             cv2.putText(frame, "Tracking failure detected", (100,80), cv2.FONT_HERSHEY_SIMPLEX, 0.75,(0,0,255),2)
@@ -126,24 +124,24 @@ if __name__ == '__main__' :
         cv2.imshow("Tracking", frame)
 
 
-video.release()
+    video.release()
 
-# close all windows
-cv2.destroyAllWindows()
+    # close all windows
+    cv2.destroyAllWindows()
 
-# Resample
+    # Resample
 
-resampled = {}
-totalTime = frameRate * (frame_idx+1)
-targetFps = 30
+    resampled = {}
+    totalTime = frameRate * (frame_idx+1)
+    targetFps = 30
 
-for i in range(round(totalTime * targetFps)):
-    frame_idx = round(i / targetFps * frameRate)
-    if frame_idx < len(objects):
-        resampled[i] = objects[frame_idx]
+    for i in range(round(totalTime * targetFps)):
+        frame_idx = round(i / targetFps * frameRate)
+        if frame_idx in objects:
+            resampled[i] = objects[frame_idx]
 
-outputDirectory = "data/test/"
-os.makedirs(outputDirectory, exist_ok=True);
-objectsPicklePath = outputDirectory + "objects.pkl"
-with open(objectsPicklePath, 'wb') as f:
-    pickle.dump(resampled, f)
+    outputDirectory = "data/test/"
+    os.makedirs(outputDirectory, exist_ok=True);
+    objectsPicklePath = outputDirectory + "objects.pkl"
+    with open(objectsPicklePath, 'wb') as f:
+        pickle.dump(resampled, f)

@@ -6,8 +6,8 @@ import glob
 from collections import namedtuple
 import pickle
 
-outputDirectory = "data/bfdi1a/"
-videoURL = "https://www.youtube.com/watch?v=YQa2-DY7Y_Q"
+outputDirectory = "data/joe_and_lex/"
+videoURL = "https://www.youtube.com/watch?v=4wHbEa98mGg&t=128s"
 
 debugOut = subprocess.DEVNULL
 debugErr = subprocess.DEVNULL
@@ -19,9 +19,9 @@ startTime = time()
 subprocess.run(downloadCommand, stdout=debugOut, stderr=debugErr)
 videoPath = glob.glob(outputDirectory + "*.mp4")[0]
 captionsPath = glob.glob(outputDirectory + "*.vtt")[0]
-print("Downloaded {}".format(videoPath[len(outputDirectory):]))
-print("Downloaded {}".format(captionsPath[len(outputDirectory):]))
-print("Download took {}ms".format(math.floor((time() - startTime) * 1000)))
+# print("Downloaded {}".format(videoPath[len(outputDirectory):]))
+# print("Downloaded {}".format(captionsPath[len(outputDirectory):]))
+# print("Download took {}ms".format(math.floor((time() - startTime) * 1000)))
 
 # Create frames directory
 framesDirectory = outputDirectory + "frames/"
@@ -43,7 +43,7 @@ with open(captionsPath) as f:
 
 separators = [i for i, x in enumerate(captionsLines) if len(x) == 0]
 split = [captionsLines[separators[i] + 1:separators[i + 1]] for i in range(len(separators) - 1)]
-
+# print(split)
 Caption = namedtuple('Caption', ['character', 'message', 'startTime', 'endTime', 'comments'])
 
 # parses to seconds
@@ -52,11 +52,11 @@ def parseTime(s):
     return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
 
 # get startTime, endTime in seconds
-times = [[parseTime(s) for s in lines[0].split("-->")] for lines in split]
+times = [[parseTime(s) for s in lines[1].split("-->")] for lines in split[1:]]
 # convert to frame numbers
 times = [(math.floor(startTime * fps), math.ceil(endTime * fps)) for startTime, endTime in times]
 # parse into caption tuples
-captions = [Caption(None, ' '.join(lines[1:]), startTime, endTime, None) for (startTime, endTime), lines in zip(times, split)]
+captions = [Caption(None, ' '.join(lines[2:]), startTime, endTime, None) for (startTime, endTime), lines in zip(times, split)]
 
 print("Parsed {} captions in {} ms".format(len(captions), math.floor((time() - startTime) * 1000)))
 
@@ -68,5 +68,4 @@ with open(captionsPicklePath, 'wb') as f:
     pickle.dump(captions, f)
 
 print("Pickled {} captions in {} ms".format(len(captions), math.floor((time() - startTime) * 1000)))
-
 
