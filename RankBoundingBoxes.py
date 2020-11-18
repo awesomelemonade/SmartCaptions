@@ -6,7 +6,7 @@ import scipy.io
 import os
 import matplotlib.pyplot as plt
 # if testing with single frames, uncomment the import below and make sure selectRegion is visible
-# from selectRegion import roipoly
+from selectRegion import roipoly
 from matplotlib.patches import Rectangle
 import imageio
 
@@ -22,6 +22,7 @@ def findIntersection(r, c, width, height, obj, frame_height, frame_width, isBox)
     if isBox:
         x,y,width,height = obj
         objPolygon = Polygon([(x, y), (x + obj[2], y), (x + obj[2], y + obj[1]), (x, y + obj[1])])
+        obj = [[x, y],[x + obj[2], y],[x + obj[2], y + obj[1]],[x, y + obj[1]]]
     else:
         xs = np.array([p[0] for p in obj])
         ys = np.array([p[1] for p in obj])
@@ -109,6 +110,8 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
     # upperR = min(startr + rows + height, frame.shape[0])
     # upperC = min(startc + cols + width, frame.shape[1])
 
+    # actualr = max(startr - 10*height, 0)
+    # actualc = max(startc - 1.5*width, 0)
     actualr = 0
     actualc = max(startc - width, 0)
     upperR = startr
@@ -116,7 +119,6 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
         #width-neighborhood, top 1/3 of height of object
         upperR = int(rows/3)
     upperC = min(startc + cols + width, frame.shape[1])
-
     for r in range(actualr, upperR):
         for c in range(actualc, upperC):
             innersum = 0
@@ -145,7 +147,6 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
                 deg = findIntersection(r, c, width, height, obj, frame_height, frame_width, isBox)
             final = alpha*innersum + (1-alpha)*deg
             list_of_positions.append([final, [r, c]])
-
     list_of_positions.sort()
     # print(list_of_positions)
     return list_of_positions[:k]
@@ -156,7 +157,7 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
 #     # mat = scipy.io.loadmat("twoFrameData", appendmat=True)
 
 #     # im1 = np.array(mat["im2"], dtype = np.uint8)
-#     im1 = imageio.imread("cookiemonster2.jpg")
+#     im1 = imageio.imread("cookiemonster3.jpg")
 #     fig, ax = plt.subplots(1)
 
 #     ax.imshow(im1)
@@ -167,7 +168,7 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
 #     # np.save("regiontesting.npy", region_points)
 #     k = 1
 #     height = 50
-#     width = 1000
+#     width = 300
 #     region_points = np.load("regiontesting.npy")
 #     output = rankBoxes(im1, np.array([width, height]), region_points, k, False)
 #     for idx in range(k):
