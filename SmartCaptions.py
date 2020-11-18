@@ -9,6 +9,7 @@ import pickle
 from collections import namedtuple
 import heapq
 import imageio
+from RankBoundingBoxes import rankBoxes
 
 Caption = namedtuple('Caption', ['character', 'message', 'startTime', 'endTime', 'comments'])
 PrioritizedCaption = namedtuple('PrioritizedCaption', ['time', 'counter', 'caption'])
@@ -19,7 +20,7 @@ framesDir = directory + "frames/"
 framePaths = glob.glob(framesDir + "*.jpg")
 print("Reading {} files".format(len(framePaths)), flush=True)
 
-framePaths.sort(key=lambda s: int(s.split("/")[-1][len("frame"):-len(".jpg")]))
+framePaths.sort(key=lambda s: int(s.split("\\")[-1][len("frame"):-len(".jpg")]))
 
 captionsPath = directory + "captions.pkl"
 objectsPath = directory + "objects.pkl"
@@ -62,11 +63,20 @@ for i, path in enumerate(framePaths):
         else:
             captionWidth, captionHeight = TextRenderer.getCaptionSize(caption.message)
             if i in objects:
-                x, y, width, height = objects[i]
-                TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message)
+                out = rankBoxes(frame, [captionWidth, captionHeight], objects[i], 1, True)
+                # out is empty if and only if there is no associated caption with a frame
+                if len(out) != 0:
+                    x = out[0][1][1]
+                    y = out[0][1][0]
+                    TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message)
             else:
                 # apply w/o object tracking
-                TextRenderer.renderCaption(frame, (100, 100, captionWidth, captionHeight), caption.message)
+                out = rankBoxes(frame, [captionWidth, captionHeight], None, 1, False)
+                # out is empty if and only if there is no associated caption with a frame
+                if len(out) != 0:
+                    x = out[0][1][1]
+                    y = out[0][1][0]
+                    TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message)
     frame_list.append(frame)
     cv2.imshow("Frame", frame[...,::-1])
     key = cv2.waitKey(1) & 0xFF
@@ -77,7 +87,7 @@ for i, path in enumerate(framePaths):
 # given a list of frames (numpy arrays), specifically an array of size ((wxhx3)xn) where n is the number of frames,
 # convert the sequence of frames into a video
 def frames2video(frames):
-    imageio.mimwrite('out/videoOutput.mp4', frames, fps=targetFps)
+    imageio.mimwrite('videoOutput.mp4', frames, fps=targetFps)
 
 frames2video(frame_list)
 

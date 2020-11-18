@@ -16,54 +16,72 @@ def rgb2gray(img):
     return np.dot(img[...,:3], [0.2989, 0.5870, 0.1140])
 
 # find area of intersection between a candidate bounding box and an object being tracked (object of interest)
-def findIntersection(r, c, width, height, obj, frame_height, frame_width):
-    xs = np.array([p[0] for p in obj])
-    ys = np.array([p[1] for p in obj])
-    minxbound = np.min(xs)
-    minybound = np.min(ys)
-    maxwidth = np.max(xs) - minxbound
-    maxheight = np.max(ys) - minybound
-
+def findIntersection(r, c, width, height, obj, frame_height, frame_width, isBox):
     captionPolygon = Polygon([(c,r), (c, r + height), (c + width, r + height), (c + width, r)])
-    objPolygon = Polygon([(minxbound, minybound), (minxbound + maxwidth, minybound), (minxbound + maxwidth, minybound - maxheight), (minxbound, minybound - maxheight)])
+    objPolygon = None
+    if isBox:
+        x,y,width,height = obj
+        objPolygon = Polygon([(x, y), (x + obj[2], y), (x + obj[2], y + obj[1]), (x, y + obj[1])])
+    else:
+        xs = np.array([p[0] for p in obj])
+        ys = np.array([p[1] for p in obj])
+        minxbound = np.min(xs)
+        minybound = np.min(ys)
+        maxwidth = np.max(xs) - minxbound
+        maxheight = np.max(ys) - minybound
+        objPolygon = Polygon([(minxbound, minybound), (minxbound + maxwidth, minybound), (minxbound + maxwidth, minybound - maxheight), (minxbound, minybound - maxheight)])
 
     pointdists = np.array([captionPolygon.distance(Point(point[0], point[1])) for point in obj])
     minn = np.min(pointdists)
     maxx = np.max(pointdists)
-    dist = (minn + maxx)/2 * 100000
+    dist = (minn + maxx)/2 * 10000000
     return captionPolygon.intersection(objPolygon).area + dist
 
 
 # frame: M x N x 3 source image
 # box_size: [width, height]
 # obj: list which contains points on boundary of object of interest (basically, don't place captions here) - can extend this later
-# if there are no objects being tracked within a frame, pass obj = None 
-
+# if there are no objects being tracked within a frame, pass obj = None (and isBox is False)
+# isBox: whether you are feeding in the bounding box (tl-coordinate plus width and height) instead of boundary points (this is true if this is the case)
+# and obj is expected to be a list [x,y,width,height] as used in SmartCaptions.py
 # return top k top-left corners that correspond to top k found candidate bounding box locations for captions
 
-def rankBoxes(frame, boxSize, obj, k):
+def rankBoxes(frame, boxSize, obj, k, isBox):
     grayframe = rgb2gray(frame)
     width = boxSize[0]
     height = boxSize[1]
 
-
     frame_height = frame.shape[0]
     frame_width = frame.shape[1]
+    rows = cols = actualr = actualc = upperR = upperC = startr = startc = 0
+    if obj is None:
+        # no objects being tracked, just use entire frame
+        rows = frame.shape[0]
+        cols = frame.shape[1]
+        actualr = 0
+        upperR = rows
+        actualc = 0
+        upperC = cols
+    else:
+        # uncomment to consider a particular region
+        if not isBox:
+            xs = np.array([p[0] for p in obj])
+            ys = np.array([p[1] for p in obj])
+            # print(np.max(xs))
+            # print(np.min(xs))
+            # print(np.max(ys))
+            # print(np.min(ys)) 
+            cols = int(np.max(xs) - np.min(xs))
+            rows = int(np.max(ys) - np.min(ys))
+            startr = int(np.min(ys))
+            startc = int(np.min(xs))
+        else:
+            x,y,w,h = obj
+            cols = w
+            rows = h
+            startr = y
+            startc = x
 
-
-    # uncomment to consider a particular region
-    xs = np.array([p[0] for p in obj])
-    ys = np.array([p[1] for p in obj])
-    print(np.max(xs))
-    print(np.min(xs))
-    print(np.max(ys))
-    print(np.min(ys)) 
-
-
-    cols = int(np.max(xs) - np.min(xs))
-    rows = int(np.max(ys) - np.min(ys))
-    startr = int(np.min(ys))
-    startc = int(np.min(xs))
     # differentiation filter
     filter_x = [[1, 0, -1],
                 [1, 0, -1],
@@ -82,10 +100,10 @@ def rankBoxes(frame, boxSize, obj, k):
     minn = np.amin(fingrad)
     # list of [weighted linear combination of respective innersum and intersection with objects of interest, top left coords of candidate bounding box]
     list_of_positions = []
-    print(startr)
-    print(startr - height)
-    print(startc)
-    print(startc - width)
+    # print(startr)
+    # print(startr - height)
+    # print(startc)
+    # print(startc - width)
     # actualr = max(startr - height, 0)
     # actualc = max(startc - width, 0)
     # upperR = min(startr + rows + height, frame.shape[0])
@@ -96,17 +114,8 @@ def rankBoxes(frame, boxSize, obj, k):
     upperR = startr
     if (upperR < height):
         #width-neighborhood, top 1/3 of height of object
-        upperR = rows/3
+        upperR = int(rows/3)
     upperC = min(startc + cols + width, frame.shape[1])
-
-    if obj is None:
-        # no objects being tracked, just use entire frame
-        rows = frame.shape[0]
-        cols = frame.shape[1]
-        actualr = 0
-        upperR = rows
-        actualc = 0
-        upperC = cols
 
     for r in range(actualr, upperR):
         for c in range(actualc, upperC):
@@ -128,12 +137,17 @@ def rankBoxes(frame, boxSize, obj, k):
             # weight linear combination of innersum and degree of intersection with objects of interest
             alpha = 0.5
             innersum = (innersum - minn)/(maxx - minn)
-            deg = findIntersection(r, c, width, height, obj, frame_height, frame_width)
+            deg = None
+            if obj is None:
+                alpha = 1
+                deg = 0
+            else:
+                deg = findIntersection(r, c, width, height, obj, frame_height, frame_width, isBox)
             final = alpha*innersum + (1-alpha)*deg
             list_of_positions.append([final, [r, c]])
 
     list_of_positions.sort()
-    print(list_of_positions[0][0])
+    # print(list_of_positions)
     return list_of_positions[:k]
 
 
@@ -151,15 +165,16 @@ def rankBoxes(frame, boxSize, obj, k):
 #     # roi = roipoly(color="r")
 #     # region_points = np.array(list(zip(roi.all_x_points, roi.all_y_points)))
 #     # np.save("regiontesting.npy", region_points)
-#     k = 5
+#     k = 1
 #     height = 50
-#     width = 500
+#     width = 1000
 #     region_points = np.load("regiontesting.npy")
-#     output = rankBoxes(im1, np.array([width, height]), region_points, k)
+#     output = rankBoxes(im1, np.array([width, height]), region_points, k, False)
 #     for idx in range(k):
 #         r = output[idx][1]
 #         rectangle = Rectangle((r[1],r[0]),width,height,linewidth=1,edgecolor='r',facecolor='none')
 #         ax.add_patch(rectangle)
+    
 #     # rectangle = Rectangle((100,50),width,height,linewidth=1,edgecolor='r',facecolor='none')
 #     # ax.add_patch(rectangle)
 #     # xs = np.array([p[0] for p in region_points])
