@@ -81,6 +81,7 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
             cols = w
             rows = h
             startr = y
+            print(y)
             startc = x
 
     # differentiation filter
@@ -93,6 +94,7 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
     gx = ndimage.correlate(grayframe, filter_x, mode = 'constant', cval = 0)
     gy = ndimage.correlate(grayframe, filter_y, mode = 'constant', cval = 0)
     avggrad = (height/(width+height))*gy + (width/(width+height))*gx
+    # avggrad = gy + gx
     gradmod = deepcopy(avggrad)
 
     # cumulative sum by rows then columns
@@ -112,29 +114,31 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
 
     # actualr = max(startr - 10*height, 0)
     # actualc = max(startc - 1.5*width, 0)
-    actualr = 0
-    actualc = max(startc - width, 0)
-    upperR = startr
-    if (upperR < height):
+    actualr = max(0, startr - 3*height)
+    actualc = max(int(startc - width/2), 0)
+    upperR = startr - height
+    if (startr - 3*height < 0):
         #width-neighborhood, top 1/3 of height of object
         upperR = int(rows/3)
-    upperC = min(startc + cols + width, frame.shape[1])
+    upperC = min(int(startc + cols + width/2), frame_width)
+    # actualr = 0
+    # actualc = 0
+    # upperR = height
+    # upperC = width
     for r in range(actualr, upperR):
         for c in range(actualc, upperC):
             innersum = 0
-            if (r + height - 1 >= upperR or c + width - 1 >= upperC):
-                # 2d subarray out of bounds, just continue
-                continue
-            if (r == 0):
-                if (c == 0):
-                    innersum = fingrad[r + height - 1][c + width - 1]
+            if (r + height - 1 < np.shape(fingrad)[0] and c + width - 1 < np.shape(fingrad)[1]):
+                if (r == 0):
+                    if (c == 0):
+                        innersum = fingrad[r + height - 1][c + width - 1]
+                    else:
+                        innersum = fingrad[r + height - 1][c + width - 1] - fingrad[r + height - 1][c - 1]
                 else:
-                    innersum = fingrad[r + height - 1][c + width - 1] - fingrad[r + height - 1][c -1]
-            else:
-                if (c == 0):
-                    innersum = fingrad[r + height - 1][c + width - 1] - fingrad[r - 1][c + width - 1]
-                else:
-                    innersum = fingrad[r + height - 1][c + width - 1] - fingrad[r - 1][c + width - 1] - fingrad[r + height - 1][c - 1] + fingrad[r - 1][c - 1]
+                    if (c == 0):
+                        innersum = fingrad[r + height - 1][c + width - 1] - fingrad[r - 1][c + width - 1]
+                    else:
+                        innersum = fingrad[r + height - 1][c + width - 1] - fingrad[r - 1][c + width - 1] - fingrad[r + height - 1][c - 1] + fingrad[r - 1][c - 1]
     
             # weight linear combination of innersum and degree of intersection with objects of interest
             alpha = 0.5
