@@ -8,13 +8,18 @@ import TextRenderer
 import pickle
 from collections import namedtuple
 import heapq
+import html
+from time import time
+import math
+import subprocess
 import imageio
 from RankBoundingBoxes import rankBoxes
 
+directory = "./data/peep/"
+
+
 Caption = namedtuple('Caption', ['character', 'message', 'startTime', 'endTime', 'comments'])
 PrioritizedCaption = namedtuple('PrioritizedCaption', ['time', 'counter', 'caption'])
-
-directory = "./data/bfdi1a/"
 
 framesDir = directory + "frames/"
 framePaths = glob.glob(framesDir + "*.jpg")
@@ -29,7 +34,10 @@ with open(captionsPath, 'rb') as captionsFile:
     targetFps = pickle.load(captionsFile)
     allCaptions = pickle.load(captionsFile) # list of (character, message, startTime, endTime[, comments])
 with open(objectsPath, 'rb') as objectsFile:
-    objects = pickle.load(objectsFile) # Currently: {index: BoundingBox} # list of {"Character": "N x 2 numpy array"} dictionaries
+    allObjects = pickle.load(objectsFile)
+    objectsByFrameNumber = pickle.load(objectsFile)
+    objects = {frameNumber: boxes[0] for frameNumber, boxes in objectsByFrameNumber.items() if boxes}
+    #objects = pickle.load(objectsFile) # Currently: {index: BoundingBox} # list of {"Character": "N x 2 numpy array"} dictionaries
 
 # Priority Queues to store captions
 currentCaptions = [] # heap sorted by endTime
@@ -40,8 +48,11 @@ for i, caption in enumerate(allCaptions):
 
 heapq.heapify(futureCaptions)
 
+videoPath = glob.glob(directory + "*.mp4")[0]
+outputPathNoAudio = 'out/videoOutput_noAudio.mp4'
+outputPathAudio = 'out/videoOutput.mp4'
 
-frame_list = []
+video = None
 
 for i, path in enumerate(framePaths):
     # update priority queues
@@ -52,11 +63,14 @@ for i, path in enumerate(framePaths):
         heapq.heappop(currentCaptions)
     # read frame
     frame = imageio.imread(path)
+    videoWidth, videoHeight, _ = frame.shape
+    if video == None:
+        video = cv2.VideoWriter(outputPathNoAudio, cv2.VideoWriter_fourcc(*'mp4v'), targetFps, (videoHeight, videoWidth))
     # get regions map by ID
     #regionsMap = allObjects[i]
     regionsMap = {}
     # apply captions
-    for _, _, caption in currentCaptions:
+    for j, (_, _, caption) in enumerate(currentCaptions):
         if caption.character in regionsMap:
             # apply w/ objection tracking
             region = regionsMap[caption.character]
@@ -77,17 +91,19 @@ for i, path in enumerate(framePaths):
                     x = out[0][1][1]
                     y = out[0][1][0]
                     TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message)
-    frame_list.append(frame)
-    cv2.imshow("Frame", frame[...,::-1])
+    bgrFrame = frame[..., ::-1]
+    cv2.imshow("Frame", bgrFrame)
+    video.write(bgrFrame)
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
         break
 
-# ~~~~requires imageio-ffmpeg~~~~
-# given a list of frames (numpy arrays), specifically an array of size ((wxhx3)xn) where n is the number of frames,
-# convert the sequence of frames into a video
-def frames2video(frames):
-    imageio.mimwrite('videoOutput.mp4', frames, fps=targetFps)
+video.release()
 
-frames2video(frame_list)
+combineCommand = ["ffmpeg", "-i", outputPathNoAudio, "-i", videoPath, "-c", "copy",
+                    "-map", "0:v:0", "-map", "1:a:0", "-shortest", "-y", outputPathAudio]
+
+startTime = time()
+subprocess.run(combineCommand)
+print("Combined video and audio in {}ms".format(math.floor((time() - startTime) * 1000)))
 
