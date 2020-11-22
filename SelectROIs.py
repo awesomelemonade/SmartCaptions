@@ -4,6 +4,10 @@ from pydub import AudioSegment # https://github.com/jiaaro/pydub
 from pydub.playback import play
 from pydub.playback import _play_with_simpleaudio
 import time
+import glob
+import pickle
+
+outputDirectory = "data/peep/"
 
 CONTROL_PLAY_PAUSE = ord('k')
 CONTROL_PLAY_PAUSE_ALIAS = ord(' ')
@@ -13,12 +17,29 @@ CONTROL_FAST_PREV = ord('h')
 CONTROL_FAST_FORWARD = ord(';')
 CONTROL_SELECT_START = ord('s')
 CONTROL_SELECT_STOP = ord('d')
+CONTROL_DELETE_START = ord('c')
+CONTROL_DELETE_STOP = ord('v')
+
+placeholderCharacter = "Quack"
+
+objectsPicklePath = outputDirectory + "objects.pkl"
+
+try:
+    print("Attempting to read {} -> ".format(objectsPicklePath), end="", flush=True)
+    with open(objectsPicklePath, 'rb') as objectsFile:
+        allObjects = pickle.load(objectsFile)
+        objectsByFrameNumber = pickle.load(objectsFile)
+        print("Done")
+except:
+    allObjects = {} # {character: [(frame, box), (frame, box), ...], ...}
+    objectsByFrameNumber = {} # {frameNumber: [box, ...]}
+    print("Failed - Initializing Empty Objects Dictionary")
 
 window = 'SelectROIs'
 
 cv2.namedWindow(window)
 
-videoPath = 'data/bfdi1a/BFDI 1a - Take the Plunge.mp4'
+videoPath = glob.glob(outputDirectory + "*.mp4")[0]
 capture = cv2.VideoCapture(videoPath)
 audio = AudioSegment.from_file(videoPath)
 
@@ -65,6 +86,11 @@ while cv2.getWindowProperty(window, cv2.WND_PROP_VISIBLE):
     
     success, frame = capture.read()
     
+    # render boxes
+    if currentFrame in objectsByFrameNumber:
+        for (x, y, w, h) in objectsByFrameNumber[currentFrame]:
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+    
     cv2.imshow(window, frame)
     
     key = cv2.waitKey(1) & 0xFF
@@ -91,11 +117,19 @@ while cv2.getWindowProperty(window, cv2.WND_PROP_VISIBLE):
             numFrames = selectStopFrame - selectStartFrame + 1
             progress = np.zeros((20, frameWidth, 3), dtype=np.uint8)
             for i in range(numFrames):
-                capture.set(cv2.CAP_PROP_POS_FRAMES, selectStartFrame + i - 1)
+                frameNumber = selectStartFrame + i
+                capture.set(cv2.CAP_PROP_POS_FRAMES, frameNumber - 1)
                 success, frame = capture.read()
                 success, box = tracker.update(frame)
                 if success:
-                    (x, y, w, h) = [int(v) for v in box]
+                    roundedBox = [int(v) for v in box]
+                    if placeholderCharacter not in allObjects:
+                        allObjects[placeholderCharacter] = []
+                    allObjects[placeholderCharacter].append((frameNumber, roundedBox))
+                    if frameNumber not in objectsByFrameNumber:
+                        objectsByFrameNumber[frameNumber] = []
+                    objectsByFrameNumber[frameNumber].append(roundedBox)
+                    (x, y, w, h) = roundedBox
                     cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 progress[:, :round(i / numFrames * frameWidth), 1] = 255
                 cv2.imshow(window, np.vstack((frame, progress)))
@@ -103,6 +137,13 @@ while cv2.getWindowProperty(window, cv2.WND_PROP_VISIBLE):
             cv2.setTrackbarPos(timeSlider, window, currentFrame + 1)
             selectStartFrame = None
             selectStartBox = None
+    if key == CONTROL_DELETE_START:
+        clearStartFrame = currentFrame
+    if key == CONTROL_DELETE_STOP:
+        for i in range(clearStartFrame, currentFrame + 1):
+            objectsByFrameNumber[i] = []
+        for character in allObjects.keys():
+            allObjects[character] = [(frame, box) for frame, box in allObjects[character] if frame < clearStartFrame or frame > currentFrame]
     if key == CONTROL_FAST_PREV:
         cv2.setTrackbarPos(timeSlider, window, currentFrame - 5)
     if key == CONTROL_FAST_FORWARD:
@@ -117,5 +158,8 @@ while cv2.getWindowProperty(window, cv2.WND_PROP_VISIBLE):
 
 cv2.destroyAllWindows()
 
+with open(objectsPicklePath, 'wb') as f:
+    pickle.dump(allObjects, f)
+    pickle.dump(objectsByFrameNumber, f)
 
 
