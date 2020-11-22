@@ -68,10 +68,6 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
         if not isBox:
             xs = np.array([p[0] for p in obj])
             ys = np.array([p[1] for p in obj])
-            # print(np.max(xs))
-            # print(np.min(xs))
-            # print(np.max(ys))
-            # print(np.min(ys)) 
             cols = int(np.max(xs) - np.min(xs))
             rows = int(np.max(ys) - np.min(ys))
             startr = int(np.min(ys))
@@ -81,7 +77,6 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
             cols = w
             rows = h
             startr = y
-            print(y)
             startc = x
 
     # differentiation filter
@@ -94,7 +89,6 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
     gx = ndimage.correlate(grayframe, filter_x, mode = 'constant', cval = 0)
     gy = ndimage.correlate(grayframe, filter_y, mode = 'constant', cval = 0)
     avggrad = (height/(width+height))*gy + (width/(width+height))*gx
-    # avggrad = gy + gx
     gradmod = deepcopy(avggrad)
 
     # cumulative sum by rows then columns
@@ -103,17 +97,7 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
     minn = np.amin(fingrad)
     # list of [weighted linear combination of respective innersum and intersection with objects of interest, top left coords of candidate bounding box]
     list_of_positions = []
-    # print(startr)
-    # print(startr - height)
-    # print(startc)
-    # print(startc - width)
-    # actualr = max(startr - height, 0)
-    # actualc = max(startc - width, 0)
-    # upperR = min(startr + rows + height, frame.shape[0])
-    # upperC = min(startc + cols + width, frame.shape[1])
 
-    # actualr = max(startr - 10*height, 0)
-    # actualc = max(startc - 1.5*width, 0)
     actualr = max(0, startr - 3*height)
     actualc = max(int(startc - width/2), 0)
     upperR = startr - height
@@ -121,10 +105,6 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
         #width-neighborhood, top 1/3 of height of object
         upperR = int(rows/3)
     upperC = min(int(startc + cols + width/2), frame_width)
-    # actualr = 0
-    # actualc = 0
-    # upperR = height
-    # upperC = width
     for r in range(actualr, upperR):
         for c in range(actualc, upperC):
             innersum = 0
