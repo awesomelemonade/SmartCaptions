@@ -6,7 +6,7 @@ import scipy.io
 import os
 import matplotlib.pyplot as plt
 # if testing with single frames, uncomment the import below and make sure selectRegion is visible
-from selectRegion import roipoly
+# from selectRegion import roipoly
 from matplotlib.patches import Rectangle
 import imageio
 
