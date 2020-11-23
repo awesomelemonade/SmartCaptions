@@ -48,7 +48,7 @@ def findIntersection(r, c, width, height, obj, frame_height, frame_width, isBox)
 # and obj is expected to be a list [x,y,width,height] as used in SmartCaptions.py
 # return top k top-left corners that correspond to top k found candidate bounding box locations for captions
 
-def rankBoxesFast(frame, boxSize, k=1, energyBlur=32, captionId=None, objBox=None, rescaleFactor=8):
+def rankBoxesFast(frame, boxSize, k=1, energyBlur=32, captionId=None, objBox=None, rescaleFactor=4):
     frame = frame[::rescaleFactor, ::rescaleFactor, ...]
     boxSize = [x // rescaleFactor for x in boxSize]
     if objBox is not None:
@@ -70,13 +70,13 @@ def rankBoxes(frame, boxSize, k=1, energyBlur=32, captionId=None, objBox=None, p
     filterY = [[1, 1, 1],
                 [0, 0, 0],
                 [-1, -1, -1]]
-    gx = ndimage.correlate(grayFrame, filterX, mode='constant', cval=0)
-    gy = ndimage.correlate(grayFrame, filterY, mode='constant', cval=0)
+    gx = ndimage.correlate(grayFrame, filterX, mode='nearest')
+    gy = ndimage.correlate(grayFrame, filterY, mode='nearest')
     
     energy = np.abs(gx) + np.abs(gy)
     
     if captionId is not None and captionId in prevPositions:
-        energy[prevPositions[captionId]] -= energyBlur ** 2 * 128
+        energy[prevPositions[captionId]] -= energyBlur ** 2 * 512
     
     
     if objBox is not None:
@@ -105,45 +105,11 @@ def rankBoxes(frame, boxSize, k=1, energyBlur=32, captionId=None, objBox=None, p
     filtered[:, :halfWidth] = np.inf
     filtered[:, frameWidth - halfWidth:] = np.inf
     
-    #print(np.unravel_index(np.argmin(filtered), filtered.shape))
-    
-    #plt.imshow(filtered)
-    #plt.show()
-    
     bestY, bestX = np.unravel_index(np.argmin(filtered), filtered.shape)
-    if bestX == 0 and bestY == 0:
-        plt.imshow(filtered)
-        plt.show()
-        print(halfHeight, frameHeight, halfWidth, frameWidth, filtered.shape, filtered[bestY, bestX])
-        #print(bestX, bestY, objBox)
     if captionId is not None:
         prevPositions[captionId] = (bestY, bestX)
     
     return [(bestX - halfWidth, bestY - halfHeight)]
-    #return [(0, 0)]
-    
-    '''
-
-    # cumulative sum by rows then columns
-    fingrad = np.cumsum(np.cumsum(gradmod, axis = 0), axis = 1)
-    maxx = np.amax(fingrad)
-    minn = np.amin(fingrad)
-    # list of [weighted linear combination of respective innersum and intersection with objects of interest, top left coords of candidate bounding box]
-    list_of_positions = []
-
-    actualr = max(0, startr - 3*height)
-    actualc = max(int(startc - width/2), 0)
-    upperR = startr - height
-    
-    
-    
-    
-    
-    
-    list_of_positions.sort()
-    # print(list_of_positions)
-    return list_of_positions[:k]
-    '''
 
 
 # if you want to test on some frames using select_roi, use the below main method

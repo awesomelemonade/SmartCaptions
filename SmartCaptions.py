@@ -14,9 +14,12 @@ import math
 import subprocess
 import imageio
 from RankBoundingBoxes import rankBoxesFast
+from pydub import AudioSegment
 
 directory = "./data/peep/"
 
+videoPath = glob.glob(directory + "*.mp4")[0]
+audio = AudioSegment.from_file(videoPath)
 
 Caption = namedtuple('Caption', ['character', 'message', 'startTime', 'endTime', 'comments'])
 PrioritizedCaption = namedtuple('PrioritizedCaption', ['time', 'counter', 'caption'])
@@ -26,6 +29,7 @@ framePaths = glob.glob(framesDir + "*.jpg")
 print("Reading {} files".format(len(framePaths)), flush=True)
 
 framePaths.sort(key=lambda s: int(s.split(os.path.sep)[-1][len("frame"):-len(".jpg")]))
+totalFrames = len(framePaths)
 
 captionsPath = directory + "captions.pkl"
 objectsPath = directory + "objects.pkl"
@@ -38,6 +42,9 @@ with open(objectsPath, 'rb') as objectsFile:
     objectsByFrameNumber = pickle.load(objectsFile)
     objects = {frameNumber: boxes[0] for frameNumber, boxes in objectsByFrameNumber.items() if boxes}
     #objects = pickle.load(objectsFile) # Currently: {index: BoundingBox} # list of {"Character": "N x 2 numpy array"} dictionaries
+
+captionVolumes = [audio[round(startTime / totalFrames * len(audio)):round(endTime / totalFrames * len(audio))].max for _, _, startTime, endTime, _ in allCaptions]
+captionVolumes = {caption: volume for caption, volume in zip(allCaptions, captionVolumes)}
 
 # Priority Queues to store captions
 currentCaptions = [] # heap sorted by endTime
@@ -66,29 +73,26 @@ for i, path in enumerate(framePaths):
     videoWidth, videoHeight, _ = frame.shape
     if video == None:
         video = cv2.VideoWriter(outputPathNoAudio, cv2.VideoWriter_fourcc(*'mp4v'), targetFps, (videoHeight, videoWidth))
-    # get regions map by ID
-    #regionsMap = allObjects[i]
-    regionsMap = {}
     # apply captions
     for j, (_, _, caption) in enumerate(currentCaptions):
-        if caption.character in regionsMap:
-            # apply w/ objection tracking
-            region = regionsMap[caption.character]
+        scale = max(0.25, captionVolumes[caption] / 16000)
+        captionWidth, captionHeight = TextRenderer.getCaptionSize(caption.message, scale)
+        if captionWidth >= videoWidth:
+            scale = 0.6
+            captionWidth, captionHeight = TextRenderer.getCaptionSize(caption.message, scale)
+        if i in objects:
+            out = rankBoxesFast(frame, [captionHeight, captionWidth], captionId=id(caption), objBox=objects[i])
+            # out is empty if and only if there is no associated caption with a frame
+            if len(out) != 0:
+                x, y = out[0]
+                TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message, scale)
         else:
-            captionWidth, captionHeight = TextRenderer.getCaptionSize(caption.message)
-            if i in objects:
-                out = rankBoxesFast(frame, [captionHeight, captionWidth], captionId=id(caption), objBox=objects[i])
-                # out is empty if and only if there is no associated caption with a frame
-                if len(out) != 0:
-                    x, y = out[0]
-                    TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message)
-            else:
-                # apply w/o object tracking
-                out = rankBoxesFast(frame, [captionHeight, captionWidth], captionId=id(caption))
-                # out is empty if and only if there is no associated caption with a frame
-                if len(out) != 0:
-                    x, y = out[0]
-                    TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message)
+            # apply w/o object tracking
+            out = rankBoxesFast(frame, [captionHeight, captionWidth], captionId=id(caption))
+            # out is empty if and only if there is no associated caption with a frame
+            if len(out) != 0:
+                x, y = out[0]
+                TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message, scale)
     bgrFrame = frame[..., ::-1]
     cv2.imshow("Frame", bgrFrame)
     video.write(bgrFrame)
