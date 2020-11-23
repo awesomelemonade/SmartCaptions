@@ -13,7 +13,7 @@ from time import time
 import math
 import subprocess
 import imageio
-from RankBoundingBoxes import rankBoxes
+from RankBoundingBoxes import rankBoxesFast
 
 directory = "./data/peep/"
 
@@ -25,7 +25,7 @@ framesDir = directory + "frames/"
 framePaths = glob.glob(framesDir + "*.jpg")
 print("Reading {} files".format(len(framePaths)), flush=True)
 
-framePaths.sort(key=lambda s: int(s.split("\\")[-1][len("frame"):-len(".jpg")]))
+framePaths.sort(key=lambda s: int(s.split(os.path.sep)[-1][len("frame"):-len(".jpg")]))
 
 captionsPath = directory + "captions.pkl"
 objectsPath = directory + "objects.pkl"
@@ -77,19 +77,17 @@ for i, path in enumerate(framePaths):
         else:
             captionWidth, captionHeight = TextRenderer.getCaptionSize(caption.message)
             if i in objects:
-                out = rankBoxes(frame, [captionWidth, captionHeight], objects[i], 1, True)
+                out = rankBoxesFast(frame, [captionHeight, captionWidth], captionId=id(caption), objBox=objects[i])
                 # out is empty if and only if there is no associated caption with a frame
                 if len(out) != 0:
-                    x = out[0][1][1]
-                    y = out[0][1][0]
+                    x, y = out[0]
                     TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message)
             else:
                 # apply w/o object tracking
-                out = rankBoxes(frame, [captionWidth, captionHeight], None, 1, False)
+                out = rankBoxesFast(frame, [captionHeight, captionWidth], captionId=id(caption))
                 # out is empty if and only if there is no associated caption with a frame
                 if len(out) != 0:
-                    x = out[0][1][1]
-                    y = out[0][1][0]
+                    x, y = out[0]
                     TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message)
     bgrFrame = frame[..., ::-1]
     cv2.imshow("Frame", bgrFrame)

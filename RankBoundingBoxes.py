@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 # from selectRegion import roipoly
 from matplotlib.patches import Rectangle
 import imageio
+import math
 
 # convert rgb image to grayscale
 # from PS1 helper code
@@ -47,49 +48,81 @@ def findIntersection(r, c, width, height, obj, frame_height, frame_width, isBox)
 # and obj is expected to be a list [x,y,width,height] as used in SmartCaptions.py
 # return top k top-left corners that correspond to top k found candidate bounding box locations for captions
 
-def rankBoxes(frame, boxSize, obj, k, isBox):
-    grayframe = rgb2gray(frame)
-    width = boxSize[0]
-    height = boxSize[1]
+def rankBoxesFast(frame, boxSize, k=1, energyBlur=32, captionId=None, objBox=None, rescaleFactor=8):
+    frame = frame[::rescaleFactor, ::rescaleFactor, ...]
+    boxSize = [x // rescaleFactor for x in boxSize]
+    if objBox is not None:
+        objBox = [x // rescaleFactor for x in objBox]
+    return [(x * rescaleFactor, y * rescaleFactor) for x, y in rankBoxes(frame, boxSize, k, energyBlur / rescaleFactor, captionId, objBox)]
 
-    frame_height = frame.shape[0]
-    frame_width = frame.shape[1]
-    rows = cols = actualr = actualc = upperR = upperC = startr = startc = 0
-    if obj is None:
-        # no objects being tracked, just use entire frame
-        rows = frame.shape[0]
-        cols = frame.shape[1]
-        actualr = 0
-        upperR = rows
-        actualc = 0
-        upperC = cols
-    else:
-        # uncomment to consider a particular region
-        if not isBox:
-            xs = np.array([p[0] for p in obj])
-            ys = np.array([p[1] for p in obj])
-            cols = int(np.max(xs) - np.min(xs))
-            rows = int(np.max(ys) - np.min(ys))
-            startr = int(np.min(ys))
-            startc = int(np.min(xs))
-        else:
-            x,y,w,h = obj
-            cols = w
-            rows = h
-            startr = y
-            startc = x
+def rankBoxes(frame, boxSize, k=1, energyBlur=32, captionId=None, objBox=None, prevPositions={}):
+    grayFrame = rgb2gray(frame)
+    grayFrame = ndimage.gaussian_filter(grayFrame, 1.5, mode='nearest')
+    height, width = boxSize
+    halfHeight, halfWidth = math.ceil(height / 2), math.ceil(width / 2)
+
+    frameHeight, frameWidth, _ = frame.shape
 
     # differentiation filter
-    filter_x = [[1, 0, -1],
+    filterX = [[1, 0, -1],
                 [1, 0, -1],
                 [1, 0, -1]]
-    filter_y = [[1, 1, 1],
+    filterY = [[1, 1, 1],
                 [0, 0, 0],
                 [-1, -1, -1]]
-    gx = ndimage.correlate(grayframe, filter_x, mode = 'constant', cval = 0)
-    gy = ndimage.correlate(grayframe, filter_y, mode = 'constant', cval = 0)
-    avggrad = (height/(width+height))*gy + (width/(width+height))*gx
-    gradmod = deepcopy(avggrad)
+    gx = ndimage.correlate(grayFrame, filterX, mode='constant', cval=0)
+    gy = ndimage.correlate(grayFrame, filterY, mode='constant', cval=0)
+    
+    energy = np.abs(gx) + np.abs(gy)
+    
+    if captionId is not None and captionId in prevPositions:
+        energy[prevPositions[captionId]] -= energyBlur ** 2 * 128
+    
+    
+    if objBox is not None:
+        objX, objY, objWidth, objHeight = objBox
+        midX, midY = objX + objWidth // 2, objY + objHeight // 2
+        midX, midY = max(0, min(frameWidth - 1, midX)), max(0, min(frameHeight - 1, midY))
+        energy[objY, midX] -= 512 * energyBlur ** 2
+    
+    energy = ndimage.gaussian_filter(energy, energyBlur, mode='constant', cval=0)
+    
+    boxFilter = np.ones(boxSize)
+    filtered = ndimage.correlate(energy, boxFilter, mode='constant', cval=0)
+    
+    if objBox is not None:
+        objX, objY, objWidth, objHeight = objBox
+        midX, midY = objX + objWidth // 2, objY + objHeight // 2
+        midX, midY = max(0, min(frameWidth - 1, midX)), max(0, min(frameHeight - 1, midY))
+        #energy[midY, midX] -= 512 * energyBlur ** 2
+        filtered[:, :min(midX - objWidth, frameWidth - 1)] += 10000
+        filtered[:, max(midX + objWidth, 0):] += 10000
+        filtered[:min(objY - objHeight, frameHeight - 1), :] += 10000
+        filtered[max(objY + objHeight, 0):, :] += 10000
+    
+    filtered[:halfHeight, :] = np.inf
+    filtered[frameHeight - halfHeight:, :] = np.inf
+    filtered[:, :halfWidth] = np.inf
+    filtered[:, frameWidth - halfWidth:] = np.inf
+    
+    #print(np.unravel_index(np.argmin(filtered), filtered.shape))
+    
+    #plt.imshow(filtered)
+    #plt.show()
+    
+    bestY, bestX = np.unravel_index(np.argmin(filtered), filtered.shape)
+    if bestX == 0 and bestY == 0:
+        plt.imshow(filtered)
+        plt.show()
+        print(halfHeight, frameHeight, halfWidth, frameWidth, filtered.shape, filtered[bestY, bestX])
+        #print(bestX, bestY, objBox)
+    if captionId is not None:
+        prevPositions[captionId] = (bestY, bestX)
+    
+    return [(bestX - halfWidth, bestY - halfHeight)]
+    #return [(0, 0)]
+    
+    '''
 
     # cumulative sum by rows then columns
     fingrad = np.cumsum(np.cumsum(gradmod, axis = 0), axis = 1)
@@ -101,39 +134,16 @@ def rankBoxes(frame, boxSize, obj, k, isBox):
     actualr = max(0, startr - 3*height)
     actualc = max(int(startc - width/2), 0)
     upperR = startr - height
-    if (startr - 3*height < 0):
-        #width-neighborhood, top 1/3 of height of object
-        upperR = int(rows/3)
-    upperC = min(int(startc + cols + width/2), frame_width)
-    for r in range(actualr, upperR):
-        for c in range(actualc, upperC):
-            innersum = 0
-            if (r + height - 1 < np.shape(fingrad)[0] and c + width - 1 < np.shape(fingrad)[1]):
-                if (r == 0):
-                    if (c == 0):
-                        innersum = fingrad[r + height - 1][c + width - 1]
-                    else:
-                        innersum = fingrad[r + height - 1][c + width - 1] - fingrad[r + height - 1][c - 1]
-                else:
-                    if (c == 0):
-                        innersum = fingrad[r + height - 1][c + width - 1] - fingrad[r - 1][c + width - 1]
-                    else:
-                        innersum = fingrad[r + height - 1][c + width - 1] - fingrad[r - 1][c + width - 1] - fingrad[r + height - 1][c - 1] + fingrad[r - 1][c - 1]
     
-            # weight linear combination of innersum and degree of intersection with objects of interest
-            alpha = 0.5
-            innersum = (innersum - minn)/(maxx - minn)
-            deg = None
-            if obj is None:
-                alpha = 1
-                deg = 0
-            else:
-                deg = findIntersection(r, c, width, height, obj, frame_height, frame_width, isBox)
-            final = alpha*innersum + (1-alpha)*deg
-            list_of_positions.append([final, [r, c]])
+    
+    
+    
+    
+    
     list_of_positions.sort()
     # print(list_of_positions)
     return list_of_positions[:k]
+    '''
 
 
 # if you want to test on some frames using select_roi, use the below main method
