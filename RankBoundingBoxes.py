@@ -49,11 +49,11 @@ def findIntersection(r, c, width, height, obj, frame_height, frame_width, isBox)
 # return top k top-left corners that correspond to top k found candidate bounding box locations for captions
 
 def rankBoxesFast(frame, boxSize, k=1, energyBlur=32, captionId=None, objBox=None, rescaleFactor=4):
-    frame = frame[::rescaleFactor, ::rescaleFactor, ...]
+    frame = frame[rescaleFactor // 2::rescaleFactor, rescaleFactor // 2::rescaleFactor, ...]
     boxSize = [x // rescaleFactor for x in boxSize]
     if objBox is not None:
         objBox = [x // rescaleFactor for x in objBox]
-    return [(x * rescaleFactor, y * rescaleFactor) for x, y in rankBoxes(frame, boxSize, k, energyBlur / rescaleFactor, captionId, objBox)]
+    return [(x * rescaleFactor + rescaleFactor // 2, y * rescaleFactor + rescaleFactor // 2) for x, y in rankBoxes(frame, boxSize, k, energyBlur / rescaleFactor, captionId, objBox)]
 
 def rankBoxes(frame, boxSize, k=1, energyBlur=32, captionId=None, objBox=None, prevPositions={}):
     grayFrame = rgb2gray(frame)
@@ -94,11 +94,10 @@ def rankBoxes(frame, boxSize, k=1, energyBlur=32, captionId=None, objBox=None, p
         objX, objY, objWidth, objHeight = objBox
         midX, midY = objX + objWidth // 2, objY + objHeight // 2
         midX, midY = max(0, min(frameWidth - 1, midX)), max(0, min(frameHeight - 1, midY))
-        #energy[midY, midX] -= 512 * energyBlur ** 2
-        filtered[:, :min(midX - objWidth, frameWidth - 1)] += 10000
-        filtered[:, max(midX + objWidth, 0):] += 10000
-        filtered[:min(objY - objHeight, frameHeight - 1), :] += 10000
-        filtered[max(objY + objHeight, 0):, :] += 10000
+        filtered[:, :max(min(midX - objWidth, frameWidth - 1), 0)] += 10000
+        filtered[:, max(min(midX + objWidth, frameWidth - 1), 0):] += 10000
+        filtered[:max(min(objY - objHeight, frameHeight - 1), 0), :] += 10000
+        filtered[max(min(objY + objHeight, frameHeight - 1), 0):, :] += 10000
     
     filtered[:halfHeight, :] = np.inf
     filtered[frameHeight - halfHeight:, :] = np.inf
@@ -110,6 +109,64 @@ def rankBoxes(frame, boxSize, k=1, energyBlur=32, captionId=None, objBox=None, p
         prevPositions[captionId] = (bestY, bestX)
     
     return [(bestX - halfWidth, bestY - halfHeight)]
+    
+
+
+def getEnergyMatrix(frame, boxSize, k=1, energyBlur=32, captionId=None, objBox=None, prevPositions={}, rescaleFactor=4):
+    energyBlur /= rescaleFactor
+    frame = frame[rescaleFactor // 2::rescaleFactor, rescaleFactor // 2::rescaleFactor, ...]
+    boxSize = [x // rescaleFactor for x in boxSize]
+    if objBox is not None:
+        objBox = [x // rescaleFactor for x in objBox]
+    grayFrame = rgb2gray(frame)
+    grayFrame = ndimage.gaussian_filter(grayFrame, 1.5, mode='nearest')
+    height, width = boxSize
+    halfHeight, halfWidth = math.ceil(height / 2), math.ceil(width / 2)
+
+    frameHeight, frameWidth, _ = frame.shape
+
+    # differentiation filter
+    filterX = [[1, 0, -1],
+                [1, 0, -1],
+                [1, 0, -1]]
+    filterY = [[1, 1, 1],
+                [0, 0, 0],
+                [-1, -1, -1]]
+    gx = ndimage.correlate(grayFrame, filterX, mode='nearest')
+    gy = ndimage.correlate(grayFrame, filterY, mode='nearest')
+    
+    energy = np.abs(gx) + np.abs(gy)
+    
+    if captionId is not None and captionId in prevPositions:
+        energy[prevPositions[captionId]] -= energyBlur ** 2 * 512
+    
+    
+    if objBox is not None:
+        objX, objY, objWidth, objHeight = objBox
+        midX, midY = objX + objWidth // 2, objY + objHeight // 2
+        midX, midY = max(0, min(frameWidth - 1, midX)), max(0, min(frameHeight - 1, midY))
+        energy[objY, midX] -= 512 * energyBlur ** 2
+    
+    energy = ndimage.gaussian_filter(energy, energyBlur, mode='constant', cval=0)
+    
+    boxFilter = np.ones(boxSize)
+    filtered = ndimage.correlate(energy, boxFilter, mode='constant', cval=0)
+    
+    if objBox is not None:
+        objX, objY, objWidth, objHeight = objBox
+        midX, midY = objX + objWidth // 2, objY + objHeight // 2
+        midX, midY = max(0, min(frameWidth - 1, midX)), max(0, min(frameHeight - 1, midY))
+        filtered[:, :max(min(midX - objWidth, frameWidth - 1), 0)] += 10000
+        filtered[:, max(min(midX + objWidth, frameWidth - 1), 0):] += 10000
+        filtered[:max(min(objY - objHeight, frameHeight - 1), 0), :] += 10000
+        filtered[max(min(objY + objHeight, frameHeight - 1), 0):, :] += 10000
+    
+    #filtered[:halfHeight, :] = np.inf
+    #filtered[frameHeight - halfHeight:, :] = np.inf
+    #filtered[:, :halfWidth] = np.inf
+    #filtered[:, frameWidth - halfWidth:] = np.inf
+    
+    return filtered
 
 
 # if you want to test on some frames using select_roi, use the below main method

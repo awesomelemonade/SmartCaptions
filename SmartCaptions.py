@@ -13,7 +13,7 @@ from time import time
 import math
 import subprocess
 import imageio
-from RankBoundingBoxes import rankBoxesFast
+from RankBoundingBoxes import rankBoxesFast, getEnergyMatrix
 from pydub import AudioSegment
 
 directory = "./data/peep/"
@@ -57,9 +57,11 @@ heapq.heapify(futureCaptions)
 
 videoPath = glob.glob(directory + "*.mp4")[0]
 outputPathNoAudio = 'out/videoOutput_noAudio.mp4'
+outputPathEnergy = 'out/videoOutput_energy.mp4'
 outputPathAudio = 'out/videoOutput.mp4'
 
 video = None
+energyVideo = None
 
 for i, path in enumerate(framePaths):
     # update priority queues
@@ -80,19 +82,27 @@ for i, path in enumerate(framePaths):
         if captionWidth >= videoWidth:
             scale = 0.6
             captionWidth, captionHeight = TextRenderer.getCaptionSize(caption.message, scale)
-        if i in objects:
-            out = rankBoxesFast(frame, [captionHeight, captionWidth], captionId=id(caption), objBox=objects[i])
-            # out is empty if and only if there is no associated caption with a frame
-            if len(out) != 0:
-                x, y = out[0]
-                TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message, scale)
-        else:
-            # apply w/o object tracking
-            out = rankBoxesFast(frame, [captionHeight, captionWidth], captionId=id(caption))
-            # out is empty if and only if there is no associated caption with a frame
-            if len(out) != 0:
-                x, y = out[0]
-                TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message, scale)
+        
+        if j == 0:
+            energyMatrix = getEnergyMatrix(frame, [captionHeight, captionWidth], captionId=id(caption), objBox=objects[i] if i in objects else None)
+            if energyVideo == None:
+                energyWidth, energyHeight = energyMatrix.shape
+                energyVideo = cv2.VideoWriter(outputPathEnergy, cv2.VideoWriter_fourcc(*'mp4v'), targetFps, (energyHeight, energyWidth))
+            energyMatrix[energyMatrix == np.inf] = 0
+            energyMatrix = energyMatrix / 100
+            
+            energyMatrix[energyMatrix < 0] = 0
+            energyMatrix[energyMatrix > 255] = 255
+            
+            energyMatrix = np.repeat(energyMatrix[..., np.newaxis].astype(np.uint8), 3, axis=2)
+        
+        out = rankBoxesFast(frame, [captionHeight, captionWidth], captionId=id(caption), objBox=objects[i] if i in objects else None)
+        # out is empty if and only if there is no associated caption with a frame
+        if len(out) != 0:
+            x, y = out[0]
+            TextRenderer.renderCaption(frame, (x, y, captionWidth, captionHeight), caption.message, scale)
+    if energyVideo is not None:
+        energyVideo.write(energyMatrix)
     bgrFrame = frame[..., ::-1]
     cv2.imshow("Frame", bgrFrame)
     video.write(bgrFrame)
@@ -101,6 +111,7 @@ for i, path in enumerate(framePaths):
         break
 
 video.release()
+energyVideo.release()
 
 combineCommand = ["ffmpeg", "-i", outputPathNoAudio, "-i", videoPath, "-c", "copy",
                     "-map", "0:v:0", "-map", "1:a:0", "-shortest", "-y", outputPathAudio]
